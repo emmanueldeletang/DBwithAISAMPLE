@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "postgres-orders": {
+      "command": "python",
+      "args": ["mcp_postgres_server/server.py"],
+      "cwd": "${workspaceFolder}/flask-multi-db-monorepo",
+      "env": {
+        "POSTGRES_HOST": "${env:POSTGRES_HOST}",
+        "POSTGRES_PORT": "${env:POSTGRES_PORT}",
+        "POSTGRES_DATABASE": "${env:POSTGRES_DATABASE}",
+        "POSTGRES_USER": "${env:POSTGRES_USER}",
+        "POSTGRES_PASSWORD": "${env:POSTGRES_PASSWORD}",
+        "POSTGRES_SSL_MODE": "${env:POSTGRES_SSL_MODE}"
+      },
+      "description": "PostgreSQL MCP server for natural language queries on Orders database (customers, orders, order_items)"
+    },
+    "mongodb-logistics": {
+      "command": "python",
+      "args": ["mcp_mongo_server/server.py"],
+      "cwd": "${workspaceFolder}/flask-multi-db-monorepo",
+      "env": {
+        "MONGODB_HOST": "${env:MONGODB_HOST}",
+        "MONGODB_DATABASE": "${env:MONGODB_DATABASE}",
+        "MONGODB_USER": "${env:MONGODB_USER}",
+        "MONGODB_PASSWORD": "${env:MONGODB_PASSWORD}"
+      },
+      "description": "MongoDB/DocumentDB MCP server for natural language queries on Logistics database (deliveries, partners)"
+    },
+    "azuresql-products": {
+      "command": "python",
+      "args": ["mcp_sql_server/server.py"],
+      "cwd": "${workspaceFolder}/flask-multi-db-monorepo",
+      "env": {
+        "AZURE_SQL_SERVER": "${env:AZURE_SQL_SERVER}",
+        "AZURE_SQL_DATABASE": "${env:AZURE_SQL_DATABASE}"
+      },
+      "description": "Azure SQL MCP server for natural language queries on Products database (products catalog with vector embeddings)"
+    }
+  }
+}
