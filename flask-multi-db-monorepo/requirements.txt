@@ -14,5 +14,6 @@ Werkzeug
 mcp
 mssql-python
 azure-identity
+azure-storage-blob
 setuptools
 

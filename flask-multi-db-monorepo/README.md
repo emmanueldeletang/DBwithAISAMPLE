@@ -41,7 +41,7 @@ Enable AI agents (GitHub Copilot) to query databases directly:
 - `mcp_mongo_server/` - MongoDB logistics
 
 ## 📂 Project Structure
-all the code are in the zip , unzip the file code.zip
+
 ```
 flask-multi-db-monorepo/
 ├── unified_app/              # Main Flask application (Port 5000)
@@ -78,6 +78,10 @@ flask-multi-db-monorepo/
 │   ├── embeddings.py        # Azure OpenAI embeddings
 │   └── hybrid_rank.py       # RRF ranking for hybrid search
 │
+├── scripts/                  # Utility scripts
+│   ├── generate_product_images.py  # DALL-E image generation
+│   └── init_databases.py    # Database initialization
+│
 ├── db/                       # Database initialization scripts
 │   ├── sqlserver/init.sql
 │   ├── postgres/init.sql
@@ -106,8 +110,6 @@ flask-multi-db-monorepo/
 # Clone the repository
 git clone <repository-url>
 cd flask-multi-db-monorepo
-
-all the code are in the zip , unzip the file code.zip
 
 # Create virtual environment
 python -m venv .venv
@@ -248,7 +250,92 @@ Configure MCP servers for AI agent integration in `.vscode/mcp.json` or use the 
 - **Delivery Tracking**: Public tracking page (no login required)
 - **Status Updates**: in_transit, out_for_delivery, delivered
 
-## 📊 Presentation
+## �️ Product Image Generation
+
+Automatically generate product images using **Azure OpenAI DALL-E 3**, upload them to **Azure Blob Storage**, and update the database.
+
+### Setup
+
+Add these environment variables to your `.env`:
+
+```ini
+# Azure Storage (for product images)
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
+# OR
+AZURE_STORAGE_ACCOUNT=your-storage-account
+AZURE_STORAGE_KEY=your-storage-key
+
+AZURE_STORAGE_CONTAINER=product-images
+
+# Azure OpenAI DALL-E
+AZURE_OPENAI_DALLE_DEPLOYMENT=dall-e-3
+```
+
+### Usage
+
+```bash
+cd flask-multi-db-monorepo
+
+# Preview what would be generated (no changes)
+python scripts/generate_product_images.py --dry-run
+
+# Generate images for all products without images
+python scripts/generate_product_images.py
+
+# Limit to first N products
+python scripts/generate_product_images.py --limit 5
+
+# Adjust delay between API calls (default: 5 seconds)
+python scripts/generate_product_images.py --delay 10
+```
+
+### How It Works
+
+```
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   Azure SQL      │    │   DALL-E 3       │    │   Blob Storage   │
+│   products       │───▶│   Generate       │───▶│   Upload PNG     │
+│   (no image)     │    │   1024x1024      │    │   (private)      │
+└──────────────────┘    └──────────────────┘    └──────────────────┘
+         │                                               │
+         └──────────── UPDATE image_url ◀────────────────┘
+```
+
+1. **Query**: Fetches products without `image_url` from Azure SQL
+2. **Generate**: Creates professional product photography prompt for DALL-E 3
+3. **Download**: Retrieves the generated image from temporary URL
+4. **Upload**: Stores image in Azure Blob Storage (`products/{sku}.png`)
+5. **Update**: Sets `image_url` column in the products table
+
+### Private Container Access
+
+Images are stored in a **private blob container** (no public access required). The Flask app serves images through a proxy endpoint:
+
+```
+GET /api/products/{sku}/image
+```
+
+**How the proxy works:**
+- Flask fetches the blob using your storage credentials
+- Returns the image with proper `Content-Type` and caching headers
+- No SAS tokens or public URLs needed in the database
+- Browser caches images for 1 day
+
+**Benefits:**
+- ✅ No public blob access required
+- ✅ Leverages existing Azure credentials
+- ✅ Works with private endpoints and VNet
+- ✅ Centralized access control via Flask auth
+
+### Regenerating URLs
+
+If you need to regenerate SAS URLs for existing images (without calling DALL-E again):
+
+```bash
+python scripts/generate_product_images.py --regenerate-urls
+```
+
+## �📊 Presentation
 
 Open the slide deck for demo presentations:
 
@@ -316,4 +403,3 @@ MIT License
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
-
