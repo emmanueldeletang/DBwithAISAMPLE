@@ -34,6 +34,10 @@ $CosmosDbClusterName = "demoai-mongo-$RandomSuffix"
 $CosmosDbAdminUser = "mongoadmin"
 $CosmosDbAdminPassword = "Demo@2026!Mongo$RandomSuffix"
 
+# Azure Storage Account Configuration (for product images)
+$StorageAccountName = "demoaist$RandomSuffix"
+$StorageContainerName = "product-images"
+
 # Output file
 $OutputFile = Join-Path $PSScriptRoot ".env.azure"
 
@@ -284,6 +288,42 @@ az cosmosdb mongocluster firewall rule create `
 Write-Success "Cosmos DB MongoDB vCore created: $CosmosDbClusterName.mongocluster.cosmos.azure.com"
 
 # =============================================================================
+# AZURE STORAGE ACCOUNT (FOR PRODUCT IMAGES)
+# =============================================================================
+
+Write-Step "Creating Azure Storage Account (for product images)"
+
+Write-Info "Creating Storage Account: $StorageAccountName"
+az storage account create `
+    --name $StorageAccountName `
+    --resource-group $ResourceGroup `
+    --location $Location `
+    --sku "Standard_LRS" `
+    --kind "StorageV2" `
+    --access-tier "Hot" `
+    --allow-blob-public-access false `
+    --min-tls-version "TLS1_2" `
+    --output none
+
+Write-Success "Storage account created"
+
+Write-Info "Getting storage account key..."
+$StorageAccountKey = az storage account keys list `
+    --resource-group $ResourceGroup `
+    --account-name $StorageAccountName `
+    --query "[0].value" `
+    --output tsv
+
+Write-Info "Creating container: $StorageContainerName"
+az storage container create `
+    --name $StorageContainerName `
+    --account-name $StorageAccountName `
+    --account-key $StorageAccountKey `
+    --output none
+
+Write-Success "Storage account created: $StorageAccountName.blob.core.windows.net"
+
+# =============================================================================
 # SAVE CONFIGURATION
 # =============================================================================
 
@@ -334,11 +374,17 @@ MONGODB_USER=$CosmosDbAdminUser
 MONGODB_PASSWORD=$CosmosDbAdminPassword
 MONGODB_DATABASE=logisticsdb
 
+# Azure Storage Account (Product Images)
+AZURE_STORAGE_ACCOUNT=$StorageAccountName
+AZURE_STORAGE_KEY=$StorageAccountKey
+AZURE_STORAGE_CONTAINER=$StorageContainerName
+
 # Azure OpenAI (configure manually)
 AZURE_OPENAI_ENDPOINT=
 AZURE_OPENAI_API_KEY=
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
 AZURE_OPENAI_EMBEDDING_DIMENSION=3072
+AZURE_OPENAI_DALLE_DEPLOYMENT=dall-e-3
 
 # Flask Configuration
 FLASK_ENV=development
@@ -376,6 +422,11 @@ Write-Host ""
 Write-Host "3. Cosmos DB for MongoDB vCore" -ForegroundColor Cyan
 Write-Host "   Host:     $CosmosDbClusterName.mongocluster.cosmos.azure.com"
 Write-Host "   User:     $CosmosDbAdminUser"
+Write-Host ""
+Write-Host "4. Azure Storage Account (Product Images)" -ForegroundColor Cyan
+Write-Host "   Account:   $StorageAccountName"
+Write-Host "   Container: $StorageContainerName"
+Write-Host "   URL:       https://$StorageAccountName.blob.core.windows.net"
 Write-Host ""
 Write-Host "Configuration saved to: $OutputFile" -ForegroundColor Yellow
 Write-Host ""
