@@ -41,7 +41,7 @@ Enable AI agents (GitHub Copilot) to query databases directly:
 - `mcp_mongo_server/` - MongoDB logistics
 
 ## 📂 Project Structure
-
+all the code are in the zip , unzip the file code.zip
 ```
 flask-multi-db-monorepo/
 ├── unified_app/              # Main Flask application (Port 5000)
@@ -110,6 +110,8 @@ flask-multi-db-monorepo/
 # Clone the repository
 git clone <repository-url>
 cd flask-multi-db-monorepo
+
+all the code are in the zip , unzip the file code.zip
 
 # Create virtual environment
 python -m venv .venv
@@ -403,3 +405,4 @@ MIT License
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
