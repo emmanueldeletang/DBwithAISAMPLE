@@ -114,6 +114,8 @@ flask-multi-db-monorepo/
 git clone <repository-url>
 cd flask-multi-db-monorepo
 
+unzip the file code.zip to get all the code 
+
 # Create virtual environment
 python -m venv .venv
 .venv\Scripts\Activate.ps1  # Windows PowerShell
@@ -155,7 +157,7 @@ AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4o
 SECRET_KEY=your-secret-key-for-sessions
 ```
 
-### 4. Initialize Databases
+### 4. Initialize Databases if you want some data inside 
 
 ```bash
 python scripts/init_databases.py
@@ -407,3 +409,4 @@ MIT License
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
