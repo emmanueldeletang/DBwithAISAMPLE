@@ -1,216 +1,409 @@
-# Demo Database AI - Multi-Database Azure Application
+# Flask Multi-Database Demo 🚀
 
-This project deploys a complete multi-database demo environment in Azure and includes a **unified Flask web application** that showcases Azure SQL, PostgreSQL, and Azure Cosmos DB for MongoDB working together.
+A demonstration project showcasing **multi-database architecture** with a unified Flask application connected to three Azure database services. Features include **vector similarity search**, **natural language queries**, **MCP (Model Context Protocol) servers**, and a modern **Bootstrap UI**.
 
-## Overview
+![Python](https://img.shields.io/badge/Python-3.11+-blue)
+![Flask](https://img.shields.io/badge/Flask-3.0+-green)
+![Azure SQL](https://img.shields.io/badge/Azure_SQL-mssql--python-blue)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-azure__ai+DiskANN-orange)
+![MongoDB](https://img.shields.io/badge/Cosmos_DB-MongoDB_vCore-green)
+
+## 🎯 Overview
+
+| Database | Domain | Driver/Extensions | Features |
+|----------|--------|-------------------|----------|
+| **Azure SQL** | Product Catalog | `mssql-python` + VECTOR(1536) | Vector search, SQL auth |
+| **PostgreSQL** | Customers & Orders | `azure_ai` + `pg_diskann` | Auto-embeddings, DiskANN index |
+| **MongoDB vCore** | Logistics & Deliveries | `pymongo` + cosmosSearch | Full-text search, vector search |
+
+## ✨ Key Features
+
+### 🔐 Authentication
+- **Local email/password** authentication with **bcrypt** password hashing
+- User accounts stored in **PostgreSQL** (`app_users` table)
+- **User management UI** (create, edit, change password, delete)
+- Session-based authentication with `flask-session`
+
+### 🔍 Vector Search with Auto-Generated Embeddings
+- **Azure SQL**: Native `VECTOR(1536)` type with `VECTOR_DISTANCE('cosine', ...)`
+- **PostgreSQL**: `azure_ai.create_embeddings()` with DiskANN/HNSW indexing
+- **MongoDB vCore**: `cosmosSearch` aggregation pipeline
+
+### 💬 Natural Language Queries
+Ask questions in plain language → AI generates SQL/MongoDB queries:
+- "Quels produits ont un stock faible ?" → Azure SQL
+- "Combien de commandes ce mois-ci ?" → PostgreSQL
+- "Livraisons en retard ?" → MongoDB
+
+### 🔌 MCP (Model Context Protocol) Servers
+Enable AI agents (GitHub Copilot) to query databases directly:
+- `mcp_sql_server/` - Azure SQL products
+- `mcp_postgres_server/` - PostgreSQL orders
+- `mcp_mongo_server/` - MongoDB logistics
+
+## 📂 Project Structure
 
 ```
-┌───────────────────────────────────────────────────────────────┐
-│             Unified Flask App (Port 5000)                     │
-│   i18n: English · Français · Deutsch · Vlaams · Español · IT │
-├───────────┬───────────────┬───────────────┬───────────────────┤
-│ Products  │ Orders &      │ Logistics     │ Inventory Agent   │
-│ + Vector  │ Customers     │ Deliveries    │ (cross-DB)        │
-│ Search    │ + Stock mgmt  │ Partners      │                   │
-├───────────┼───────────────┼───────────────┼───────────────────┤
-│ Azure SQL │  PostgreSQL   │    MongoDB    │ SQL → Mongo       │
-│ (VECTOR)  │  (pgvector)   │  (Cosmos DB)  │ (reorders)        │
-└───────────┴───────────────┴───────────────┴───────────────────┘
+flask-multi-db-monorepo/
+├── unified_app/              # Main Flask application (Port 5000)
+│   ├── app.py               # Routes for all three databases
+│   ├── services/
+│   │   └── user_service.py  # User CRUD + bcrypt auth (PostgreSQL)
+│   └── templates/           # Bootstrap UI templates
+│
+├── product_app/              # Azure SQL services
+│   └── services/
+│       ├── product_service.py
+│       ├── search_service.py
+│       └── nl_query_service.py    # Natural language → T-SQL
+│
+├── order_app/                # PostgreSQL services
+│   └── services/
+│       ├── customer_service.py
+│       ├── order_service.py
+│       └── nl_query_service.py    # Natural language → SQL
+│
+├── logistics_app/            # MongoDB services
+│   └── services/
+│       ├── partner_service.py
+│       ├── delivery_service.py
+│       └── nl_query_service.py    # Natural language → MongoDB
+│
+├── mcp_sql_server/           # MCP Server for Azure SQL
+│   └── server.py
+├── mcp_postgres_server/      # MCP Server for PostgreSQL
+│   └── server.py
+├── mcp_mongo_server/         # MCP Server for MongoDB
+│   └── server.py
+│
+├── shared/                   # Shared utilities
+│   ├── config.py            # Environment configuration
+│   ├── embeddings.py        # Azure OpenAI embeddings
+│   └── hybrid_rank.py       # RRF ranking for hybrid search
+│
+├── scripts/                  # Utility scripts
+│   ├── generate_product_images.py  # DALL-E image generation
+│   └── init_databases.py    # Database initialization
+│
+├── db/                       # Database initialization scripts
+│   ├── sqlserver/init.sql
+│   ├── postgres/init.sql
+│   └── mongo/init.js
+│
+├── presentation.html         # Slide deck for demo presentation
+├── mcp_config.json          # MCP servers configuration
+└── requirements.txt
 ```
 
-### Application Features
+## 🚀 Quick Start
 
-- **Multi-language UI** — 6 languages (EN/FR/DE/NL/ES/IT), selectable on login page and navbar
-- **Product Catalog** (Azure SQL) — CRUD, vector semantic search, AI image generation (DALL-E 3)
-- **Orders & Customers** (PostgreSQL) — Order creation with automatic stock decrement and delivery creation
-- **Logistics** (Cosmos DB for MongoDB) — Delivery tracking, dispatch center, partner CRUD + search
-- **Inventory Agent** — Cross-database: reads stock from Azure SQL, creates reorders in MongoDB, fulfill to restock
-- **AI Natural Language Queries** — Ask questions across all 3 databases via GPT-4o
-- **Local Authentication** — Email/password with bcrypt, session-based, login audit log
-- **User Management** — Admin UI for user CRUD and password changes
+### 1. Prerequisites
 
-## Azure Resources Created
+- Python 3.11+
+- Azure CLI logged in (`az login`)
+- Azure subscription with:
+  - Azure SQL Database
+  - Azure Database for PostgreSQL (with pgvector)
+  - Azure Cosmos DB for MongoDB vCore
+  - Azure OpenAI (text-embedding-3-large, gpt-4o)
 
-| Resource | Name Pattern | Description |
-|----------|-------------|-------------|
-| **Resource Group** | `RG-demo-database-ai-{extraName}` | Contains all resources |
-| **Azure SQL Server** | `demodbai{extraName}-sqlserver` | Azure SQL Database logical server |
-| **SQL Database** | `demodbai{extraName}-sqldb` | Basic tier SQL Database (2GB) |
-| **PostgreSQL Flexible Server** | `demodbai{extraName}-postgres` | PostgreSQL v16 Flexible Server |
-| **PostgreSQL Database** | `demodbai{extraName}db` | UTF8 database |
-| **Cosmos DB MongoDB vCore** | `demodbai{extraName}-cosmosdb-mongo` | MongoDB vCore cluster (M30) |
-| **Storage Account** | `demoaist{suffix}` | StorageV2, Standard_LRS, Hot tier |
-| **Blob Container** | `product-images` | Private container for product images |
-| **App Service** | `multidatabase-demo-app` | B1 Linux plan, Python 3.12 |
+### 2. Environment Setup
 
-## Prerequisites
-
-- Azure CLI installed and logged in
-- Azure subscription with appropriate permissions
-- Bicep CLI (included with Azure CLI v2.20+)
-
-## Deployment
-
-### Option 1: PowerShell Script (Recommended)
-
-The easiest way to deploy all resources:
-
-```powershell
-# Deploy with defaults (francecentral region)
-.\\deploy-databases.ps1
-
-# Custom subscription/resource group
-.\\deploy-databases.ps1 -SubscriptionId "your-sub-id" -ResourceGroup "mygroup" -Location "westeurope"
-```
-
-This creates all resources and saves connection strings to `.env.azure`.
-
-### Option 2: Using Azure CLI with parameters file
-
-1. Edit `main.bicepparam` and replace placeholder values:
-   - `<your-extra-name>`: Your unique identifier
-   - `<your-sql-password>`: SQL Server password
-   - `<your-postgres-password>`: PostgreSQL password
-   - `<your-cosmos-password>`: Cosmos DB password
-
-2. Deploy:
 ```bash
-az deployment sub create \
-  --location westeurope \
-  --template-file main.bicep \
-  --parameters main.bicepparam
+# Clone the repository
+git clone <repository-url>
+cd flask-multi-db-monorepo
+
+# Create virtual environment
+python -m venv .venv
+.venv\Scripts\Activate.ps1  # Windows PowerShell
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-### Option 2: Using Azure CLI with inline parameters
+### 3. Configure Environment
+
+Create a `.env` file:
+
+```ini
+# Azure SQL (Products) - SQL authentication
+AZURE_SQL_SERVER=your-server.database.windows.net
+AZURE_SQL_DATABASE=productcatalog
+AZURE_SQL_USER=your-sql-user
+AZURE_SQL_PASSWORD=your-sql-password
+
+# PostgreSQL (Orders)
+POSTGRES_HOST=your-server.postgres.database.azure.com
+POSTGRES_DATABASE=ordersdb
+POSTGRES_USER=your-username
+POSTGRES_PASSWORD=your-password
+
+# MongoDB vCore (Logistics)
+MONGODB_HOST=your-cluster.mongocluster.cosmos.azure.com
+MONGODB_DATABASE=logisticsdb
+MONGODB_USER=your-username
+MONGODB_PASSWORD=your-password
+
+# Azure OpenAI
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_KEY=your-key
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
+AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4o
+
+# App Configuration
+SECRET_KEY=your-secret-key-for-sessions
+```
+
+### 4. Initialize Databases
 
 ```bash
-az deployment sub create \
-  --location westeurope \
-  --template-file main.bicep \
-  --parameters extraName='myproject' \
-               sqlAdminPassword='YourSecurePassword123!' \
-               postgresAdminPassword='YourSecurePassword123!' \
-               cosmosAdminPassword='YourSecurePassword123!'
+python scripts/init_databases.py
 ```
 
-### Option 3: Using PowerShell
+### 5. Run the Application
 
-```powershell
-New-AzSubscriptionDeployment `
-  -Location "westeurope" `
-  -TemplateFile "main.bicep" `
-  -extraName "myproject" `
-  -sqlAdminPassword (ConvertTo-SecureString "YourSecurePassword123!" -AsPlainText -Force) `
-  -postgresAdminPassword (ConvertTo-SecureString "YourSecurePassword123!" -AsPlainText -Force) `
-  -cosmosAdminPassword (ConvertTo-SecureString "YourSecurePassword123!" -AsPlainText -Force)
+```bash
+cd unified_app
+python app.py
 ```
 
-## Password Requirements
+Access at: **http://localhost:5000**
 
-All passwords must meet Azure complexity requirements:
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one number
-- At least one special character
+## 🔄 Application Workflow
 
-## Connection Strings
-
-After deployment, you can connect to the databases using:
-
-### SQL Server
 ```
-Server=demodbai{extraName}-sqlserver.database.windows.net;Database=demodbai{extraName}-sqldb;User Id={sqlAdminLogin};Password={password};
+┌─────────────────────────────────────────────────────────────────┐
+│                      UNIFIED FLASK APP                          │
+│                       (Port 5000)                               │
+├─────────────────────────────────────────────────────────────────┤
+│  📦 Products    │  📋 Orders      │  🚚 Logistics              │
+│  /products      │  /customers     │  /deliveries               │
+│  /catalog       │  /orders        │  /partners                 │
+│                 │                 │  /dispatch                 │
+│                 │                 │  /track/<number>           │
+├─────────────────────────────────────────────────────────────────┤
+│                    💬 AI Query Interface                        │
+│                        /ask                                     │
+│         PostgreSQL │ MongoDB │ Azure SQL                        │
+└─────────────────────────────────────────────────────────────────┘
+         │                │                │
+         ▼                ▼                ▼
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│  Azure SQL  │  │ PostgreSQL  │  │   MongoDB   │
+│  Products   │  │   Orders    │  │  Logistics  │
+│  VECTOR     │  │  DiskANN    │  │ cosmosSearch│
+└─────────────┘  └─────────────┘  └─────────────┘
+         │                │                │
+         └────────────────┼────────────────┘
+                          ▼
+              ┌─────────────────────┐
+              │    Azure OpenAI     │
+              │  Embeddings + GPT-4o│
+              └─────────────────────┘
 ```
 
-### PostgreSQL
+## 🔌 MCP Servers
+
+Configure MCP servers for AI agent integration in `.vscode/mcp.json` or use the provided `mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "postgres-orders": {
+      "command": "python",
+      "args": ["mcp_postgres_server/server.py"]
+    },
+    "mongodb-logistics": {
+      "command": "python",
+      "args": ["mcp_mongo_server/server.py"]
+    },
+    "azuresql-products": {
+      "command": "python",
+      "args": ["mcp_sql_server/server.py"]
+    }
+  }
+}
 ```
-Host=demodbai{extraName}-postgres.postgres.database.azure.com;Database=demodbai{extraName}db;Username={postgresAdminLogin};Password={password};SSL Mode=Require;
-```
 
-### Cosmos DB MongoDB
-The connection string is available in the deployment outputs or Azure Portal.
+### Available MCP Tools
 
-### Azure Storage Account (Product Images)
+| Server | Tools |
+|--------|-------|
+| **azuresql-products** | `get_database_schema`, `execute_query`, `search_products`, `get_low_stock_products`, `get_statistics` |
+| **postgres-orders** | `get_database_schema`, `execute_query`, `search_customers`, `get_customer_orders`, `get_statistics` |
+| **mongodb-logistics** | `get_database_schema`, `query_collection`, `get_delivery_status`, `search_partners` |
 
-The storage account is created with the following configuration:
-- **Kind**: StorageV2
-- **SKU**: Standard_LRS
-- **Access Tier**: Hot
-- **Public blob access**: Disabled
-- **Min TLS**: 1.2
-- **Container**: `product-images` (private)
+## 🎯 Demo Features
 
-Connection details are saved to `.env.azure`:
-```
-AZURE_STORAGE_ACCOUNT=demoaist{suffix}
-AZURE_STORAGE_KEY=<auto-generated>
+### Product Catalog (Azure SQL)
+- Category filtering and price range
+- Vector-based semantic search
+- Stock management with low-stock alerts
+- Natural language queries for products
+
+### Order Management (PostgreSQL)
+- Customer CRUD operations
+- Multi-item order creation
+- Status tracking (pending → confirmed → processing → shipped → delivered)
+- Auto-creates delivery record in MongoDB when order is placed
+
+### Logistics (MongoDB)
+- **Dispatch Center**: View unassigned deliveries
+- **Partner Management**: Assign deliveries to partners
+- **Delivery Tracking**: Public tracking page (no login required)
+- **Status Updates**: in_transit, out_for_delivery, delivered
+
+## �️ Product Image Generation
+
+Automatically generate product images using **Azure OpenAI DALL-E 3**, upload them to **Azure Blob Storage**, and update the database.
+
+### Setup
+
+Add these environment variables to your `.env`:
+
+```ini
+# Azure Storage (for product images)
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...
+# OR
+AZURE_STORAGE_ACCOUNT=your-storage-account
+AZURE_STORAGE_KEY=your-storage-key
+
 AZURE_STORAGE_CONTAINER=product-images
+
+# Azure OpenAI DALL-E
+AZURE_OPENAI_DALLE_DEPLOYMENT=dall-e-3
 ```
 
-Blob endpoint:
-```
-https://demoaist{suffix}.blob.core.windows.net
-```
-
-## Outputs
-
-The deployment returns:
-- `resourceGroupName`: Name of the created resource group
-- `resourceGroupId`: Resource ID of the resource group
-- `sqlServerName`: SQL Server name
-- `sqlServerFqdn`: SQL Server fully qualified domain name
-- `sqlDatabaseName`: SQL Database name
-- `postgresServerName`: PostgreSQL server name
-- `postgresServerFqdn`: PostgreSQL fully qualified domain name
-- `cosmosDbName`: Cosmos DB MongoDB cluster name
-- `cosmosDbConnectionString`: Cosmos DB connection string
-- `storageAccountName`: Storage account name (for product images)
-- `storageContainerName`: Blob container name (`product-images`)
-
-## Clean Up
-
-To delete all resources:
+### Usage
 
 ```bash
-az group delete --name RG-demo-database-ai-{extraName} --yes --no-wait
+cd flask-multi-db-monorepo
+
+# Preview what would be generated (no changes)
+python scripts/generate_product_images.py --dry-run
+
+# Generate images for all products without images
+python scripts/generate_product_images.py
+
+# Limit to first N products
+python scripts/generate_product_images.py --limit 5
+
+# Adjust delay between API calls (default: 5 seconds)
+python scripts/generate_product_images.py --delay 10
 ```
 
-## File Structure
+### How It Works
 
 ```
-demodatabasedaysmars2026/
-├── deploy-databases.ps1          # PowerShell infra deployment (Bicep)
-├── main.bicep                    # Main Bicep template (subscription scope)
-├── main.bicepparam               # Parameters file
-├── README.md                     # This file
-├── modules/
-│   └── databases.bicep           # Database resources module
-└── flask-multi-db-monorepo/      # Flask application
-    ├── .env                      # Environment variables (local)
-    ├── requirements.txt          # Python dependencies
-    ├── deploy-webapp.ps1         # App Service deployment (Kudu API)
-    ├── seed_users.py             # Seed default user accounts
-    ├── unified_app/              # Main application
-    │   ├── app.py                # Flask routes (all features)
-    │   ├── translations.py       # i18n – 6 languages
-    │   ├── services/
-    │   │   ├── user_service.py   # User auth + CRUD (PostgreSQL)
-    │   │   └── inventory_agent.py # Stock agent (Azure SQL → MongoDB)
-    │   └── templates/            # Jinja2 templates (Bootstrap 5)
-    ├── product_app/services/     # ProductService (Azure SQL)
-    ├── order_app/services/       # OrderService (PostgreSQL)
-    ├── logistics_app/services/   # Delivery/Partner services (MongoDB)
-    ├── shared/                   # Config, embeddings, search utilities
-    ├── db/                       # Database init scripts (SQL, Mongo)
-    └── scripts/                  # Setup & test scripts
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│   Azure SQL      │    │   DALL-E 3       │    │   Blob Storage   │
+│   products       │───▶│   Generate       │───▶│   Upload PNG     │
+│   (no image)     │    │   1024x1024      │    │   (private)      │
+└──────────────────┘    └──────────────────┘    └──────────────────┘
+         │                                               │
+         └──────────── UPDATE image_url ◀────────────────┘
 ```
 
-## Notes
+1. **Query**: Fetches products without `image_url` from Azure SQL
+2. **Generate**: Creates professional product photography prompt for DALL-E 3
+3. **Download**: Retrieves the generated image from temporary URL
+4. **Upload**: Stores image in Azure Blob Storage (`products/{sku}.png`)
+5. **Update**: Sets `image_url` column in the products table
 
-- All resources are deployed with public access enabled for demo purposes
-- Azure services are allowed to access all databases via firewall rules
-- For production use, consider enabling private endpoints and disabling public access
-- Cosmos DB MongoDB vCore uses M30 tier — adjust based on your needs
-- Storage account has public blob access disabled — use storage key or SAS tokens
-- App deployed via Kudu API with publishing credentials (basic auth)
+### Private Container Access
+
+Images are stored in a **private blob container** (no public access required). The Flask app serves images through a proxy endpoint:
+
+```
+GET /api/products/{sku}/image
+```
+
+**How the proxy works:**
+- Flask fetches the blob using your storage credentials
+- Returns the image with proper `Content-Type` and caching headers
+- No SAS tokens or public URLs needed in the database
+- Browser caches images for 1 day
+
+**Benefits:**
+- ✅ No public blob access required
+- ✅ Leverages existing Azure credentials
+- ✅ Works with private endpoints and VNet
+- ✅ Centralized access control via Flask auth
+
+### Regenerating URLs
+
+If you need to regenerate SAS URLs for existing images (without calling DALL-E again):
+
+```bash
+python scripts/generate_product_images.py --regenerate-urls
+```
+
+## �📊 Presentation
+
+Open the slide deck for demo presentations:
+
+```bash
+# Open in browser
+start presentation.html
+```
+
+10 slides covering architecture, workflow, and technology stack.
+
+## 🧪 Testing
+
+```bash
+pytest tests/
+```
+
+## 🔧 Technical Details
+
+### Vector Search Comparison
+
+| Database | Vector Type | Index | Distance Function |
+|----------|-------------|-------|-------------------|
+| Azure SQL | `VECTOR(1536)` | Scan | `VECTOR_DISTANCE('cosine', ...)` |
+| PostgreSQL | `vector(3072)` | DiskANN | `<=>` |
+| MongoDB | Array | cosmosSearch | vectorSearch pipeline |
+
+### Natural Language → Query Flow
+
+```
+User Question
+     │
+     ▼
+┌──────────────────┐
+│  Azure OpenAI    │
+│    GPT-4o        │
+│                  │
+│  System prompt   │
+│  + DB schema     │
+└────────┬─────────┘
+         │
+         ▼
+  Generated Query
+  (SQL / MongoDB)
+         │
+         ▼
+┌──────────────────┐
+│  Safety Check    │
+│  (SELECT only)   │
+└────────┬─────────┘
+         │
+         ▼
+┌──────────────────┐
+│  Execute Query   │
+│  Return Results  │
+└──────────────────┘
+```
+
+## 📄 License
+
+MIT License
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
