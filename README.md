@@ -52,7 +52,7 @@ Enable AI agents (GitHub Copilot) to query databases directly:
 - NL query support ("Who logged in today?", "Most active user?")
 
 ## 📂 Project Structure
-
+all the code is in the zip code.zip , unzip to get access 
 ```
 flask-multi-db-monorepo/
 ├── unified_app/              # Main Flask application (Port 5000)
@@ -128,6 +128,8 @@ flask-multi-db-monorepo/
 # Clone the repository
 git clone <repository-url>
 cd flask-multi-db-monorepo
+
+all the code is in the zip code.zip , unzip to get access
 
 # Create virtual environment
 python -m venv .venv
@@ -439,3 +441,4 @@ MIT License
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
