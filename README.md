@@ -1,12 +1,13 @@
 # Flask Multi-Database Demo 🚀
 
-A demonstration project showcasing **multi-database architecture** with a unified Flask application connected to three Azure database services. Features include **vector similarity search**, **natural language queries**, **MCP (Model Context Protocol) servers**, and a modern **Bootstrap UI**.
+A demonstration project showcasing **multi-database architecture** with a unified Flask application connected to four Azure database services. Features include **vector similarity search**, **natural language queries**, **MCP (Model Context Protocol) servers**, **activity tracking**, and a modern **Bootstrap UI**.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-green)
 ![Azure SQL](https://img.shields.io/badge/Azure_SQL-mssql--python-blue)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-azure__ai+DiskANN-orange)
 ![MongoDB](https://img.shields.io/badge/Cosmos_DB-MongoDB_vCore-green)
+![Cosmos DB NoSQL](https://img.shields.io/badge/Cosmos_DB-NoSQL-orange)
 
 ## 🎯 Overview
 
@@ -15,6 +16,7 @@ A demonstration project showcasing **multi-database architecture** with a unifie
 | **Azure SQL** | Product Catalog | `mssql-python` + VECTOR(1536) | Vector search, SQL auth |
 | **PostgreSQL** | Customers & Orders | `azure_ai` + `pg_diskann` | Auto-embeddings, DiskANN index |
 | **MongoDB vCore** | Logistics & Deliveries | `pymongo` + cosmosSearch | Full-text search, vector search |
+| **Cosmos DB NoSQL** | Activity Tracking | `azure-cosmos` SDK | Per-user daily log, composite index |
 
 ## ✨ Key Features
 
@@ -30,25 +32,35 @@ A demonstration project showcasing **multi-database architecture** with a unifie
 - **MongoDB vCore**: `cosmosSearch` aggregation pipeline
 
 ### 💬 Natural Language Queries
-Ask questions in plain language → AI generates SQL/MongoDB queries:
+Ask questions in plain language → AI generates SQL/MongoDB/Cosmos SQL queries:
 - "Quels produits ont un stock faible ?" → Azure SQL
 - "Combien de commandes ce mois-ci ?" → PostgreSQL
 - "Livraisons en retard ?" → MongoDB
+- "Qui s'est connecté aujourd'hui ?" → Cosmos DB NoSQL
 
 ### 🔌 MCP (Model Context Protocol) Servers
 Enable AI agents (GitHub Copilot) to query databases directly:
 - `mcp_sql_server/` - Azure SQL products
 - `mcp_postgres_server/` - PostgreSQL orders
 - `mcp_mongo_server/` - MongoDB logistics
+- `mcp_cosmos_server/` - Cosmos DB NoSQL activity tracking
+
+### 📊 Activity Tracking & Audit
+- **Cosmos DB NoSQL** stores per-user daily activity documents
+- Partition key: `/email`, composite index on email + date
+- Activity log UI with date and email filters
+- NL query support ("Who logged in today?", "Most active user?")
 
 ## 📂 Project Structure
 
 ```
 flask-multi-db-monorepo/
 ├── unified_app/              # Main Flask application (Port 5000)
-│   ├── app.py               # Routes for all three databases
+│   ├── app.py               # Routes for all four databases
 │   ├── services/
-│   │   └── user_service.py  # User CRUD + bcrypt auth (PostgreSQL)
+│   │   ├── user_service.py  # User CRUD + bcrypt auth (PostgreSQL)
+│   │   ├── activity_tracking_service.py  # Activity tracking (Cosmos DB NoSQL)
+│   │   └── cosmos_nl_query_service.py    # NL → Cosmos SQL
 │   └── templates/           # Bootstrap UI templates
 │
 ├── product_app/              # Azure SQL services
@@ -74,6 +86,8 @@ flask-multi-db-monorepo/
 ├── mcp_postgres_server/      # MCP Server for PostgreSQL
 │   └── server.py
 ├── mcp_mongo_server/         # MCP Server for MongoDB
+│   └── server.py
+├── mcp_cosmos_server/        # MCP Server for Cosmos DB NoSQL
 │   └── server.py
 │
 ├── shared/                   # Shared utilities
@@ -105,6 +119,7 @@ flask-multi-db-monorepo/
   - Azure SQL Database
   - Azure Database for PostgreSQL (with pgvector)
   - Azure Cosmos DB for MongoDB vCore
+  - Azure Cosmos DB NoSQL (activity tracking)
   - Azure OpenAI (text-embedding-3-large, gpt-4o)
 
 ### 2. Environment Setup
@@ -113,8 +128,6 @@ flask-multi-db-monorepo/
 # Clone the repository
 git clone <repository-url>
 cd flask-multi-db-monorepo
-
-unzip the file code.zip to get all the code 
 
 # Create virtual environment
 python -m venv .venv
@@ -153,11 +166,17 @@ AZURE_OPENAI_API_KEY=your-key
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
 AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4o
 
+# Cosmos DB NoSQL (Activity Tracking)
+COSMOS_NOSQL_ENDPOINT=https://your-account.documents.azure.com:443/
+COSMOS_NOSQL_KEY=your-key
+COSMOS_NOSQL_DATABASE=useractivities
+COSMOS_NOSQL_CONTAINER=daily_activities
+
 # App Configuration
 SECRET_KEY=your-secret-key-for-sessions
 ```
 
-### 4. Initialize Databases if you want some data inside 
+### 4. Initialize Databases
 
 ```bash
 python scripts/init_databases.py
@@ -179,25 +198,24 @@ Access at: **http://localhost:5000**
 │                      UNIFIED FLASK APP                          │
 │                       (Port 5000)                               │
 ├─────────────────────────────────────────────────────────────────┤
-│  📦 Products    │  📋 Orders      │  🚚 Logistics              │
-│  /products      │  /customers     │  /deliveries               │
-│  /catalog       │  /orders        │  /partners                 │
-│                 │                 │  /dispatch                 │
-│                 │                 │  /track/<number>           │
+│  📦 Products    │  📋 Orders      │  🚚 Logistics  │  📊 Activity  │
+│  /products      │  /customers     │  /deliveries   │  /activities  │
+│  /catalog       │  /orders        │  /partners     │  (audit log)  │
+│                 │                 │  /dispatch     │              │
 ├─────────────────────────────────────────────────────────────────┤
 │                    💬 AI Query Interface                        │
 │                        /ask                                     │
-│         PostgreSQL │ MongoDB │ Azure SQL                        │
+│     PostgreSQL │ MongoDB │ Azure SQL │ Cosmos DB NoSQL          │
 └─────────────────────────────────────────────────────────────────┘
-         │                │                │
-         ▼                ▼                ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│  Azure SQL  │  │ PostgreSQL  │  │   MongoDB   │
-│  Products   │  │   Orders    │  │  Logistics  │
-│  VECTOR     │  │  DiskANN    │  │ cosmosSearch│
-└─────────────┘  └─────────────┘  └─────────────┘
-         │                │                │
-         └────────────────┼────────────────┘
+         │                │                │                │
+         ▼                ▼                ▼                ▼
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌──────────────┐
+│  Azure SQL  │  │ PostgreSQL  │  │   MongoDB   │  │ Cosmos DB    │
+│  Products   │  │   Orders    │  │  Logistics  │  │ NoSQL        │
+│  VECTOR     │  │  DiskANN    │  │ cosmosSearch│  │ Activities   │
+└─────────────┘  └─────────────┘  └─────────────┘  └──────────────┘
+         │                │                │                │
+         └────────────────┼────────────────┴────────────────┘
                           ▼
               ┌─────────────────────┐
               │    Azure OpenAI     │
@@ -223,6 +241,10 @@ Configure MCP servers for AI agent integration in `.vscode/mcp.json` or use the 
     "azuresql-products": {
       "command": "python",
       "args": ["mcp_sql_server/server.py"]
+    },
+    "cosmosdb-activities": {
+      "command": "python",
+      "args": ["mcp_cosmos_server/server.py"]
     }
   }
 }
@@ -235,6 +257,7 @@ Configure MCP servers for AI agent integration in `.vscode/mcp.json` or use the 
 | **azuresql-products** | `get_database_schema`, `execute_query`, `search_products`, `get_low_stock_products`, `get_statistics` |
 | **postgres-orders** | `get_database_schema`, `execute_query`, `search_customers`, `get_customer_orders`, `get_statistics` |
 | **mongodb-logistics** | `get_database_schema`, `query_collection`, `get_delivery_status`, `search_partners` |
+| **cosmosdb-activities** | `get_database_schema`, `execute_query`, `get_sample_documents`, `get_statistics`, `get_user_activities`, `get_activities_for_day`, `get_distinct_users` |
 
 ## 🎯 Demo Features
 
@@ -255,6 +278,13 @@ Configure MCP servers for AI agent integration in `.vscode/mcp.json` or use the 
 - **Partner Management**: Assign deliveries to partners
 - **Delivery Tracking**: Public tracking page (no login required)
 - **Status Updates**: in_transit, out_for_delivery, delivered
+
+### Activity Tracking (Cosmos DB NoSQL)
+- **Per-user daily activity documents** partitioned by email
+- **Audit log UI** at `/activities` with date and email filters
+- **Composite index** on email + date for efficient queries
+- **NL queries**: "Who logged in today?", "Most active user?"
+- **MCP server** for AI agent integration
 
 ## �️ Product Image Generation
 
@@ -384,7 +414,7 @@ User Question
          │
          ▼
   Generated Query
-  (SQL / MongoDB)
+  (SQL / MongoDB / Cosmos SQL)
          │
          ▼
 ┌──────────────────┐
@@ -409,4 +439,3 @@ MIT License
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
-
