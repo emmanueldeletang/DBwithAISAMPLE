@@ -174,6 +174,12 @@ COSMOS_NOSQL_KEY=your-key
 COSMOS_NOSQL_DATABASE=useractivities
 COSMOS_NOSQL_CONTAINER=daily_activities
 
+
+# Azure AI Translator
+AZURE_TRANSLATOR_ENDPOINT=https://your-account.cognitiveservices.azure.com
+AZURE_TRANSLATOR_KEY=your-key
+AZURE_TRANSLATOR_REGION=your-Region
+
 # App Configuration
 SECRET_KEY=your-secret-key-for-sessions
 ```
@@ -441,4 +447,5 @@ MIT License
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
 
