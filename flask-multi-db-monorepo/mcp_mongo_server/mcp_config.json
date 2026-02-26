@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "mongodb-logistics": {
+      "command": "python",
+      "args": ["mcp_mongo_server/server.py"],
+      "cwd": "${workspaceFolder}/flask-multi-db-monorepo",
+      "env": {
+        "MONGODB_HOST": "${env:MONGODB_HOST}",
+        "MONGODB_DATABASE": "${env:MONGODB_DATABASE}",
+        "MONGODB_USER": "${env:MONGODB_USER}",
+        "MONGODB_PASSWORD": "${env:MONGODB_PASSWORD}"
+      }
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Orders - Order Management{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-bag"></i> Orders</h1>
+        <a href="{{ url_for('create_order') }}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> Create Order
+        </a>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted">Filter by status:</span>
+                <a href="{{ url_for('orders') }}" class="btn btn-sm {% if not status_filter %}btn-secondary{% else %}btn-outline-secondary{% endif %}">All</a>
+                <a href="{{ url_for('orders', status='pending') }}" class="btn btn-sm {% if status_filter == 'pending' %}btn-warning{% else %}btn-outline-warning{% endif %}">Pending</a>
+                <a href="{{ url_for('orders', status='confirmed') }}" class="btn btn-sm {% if status_filter == 'confirmed' %}btn-info{% else %}btn-outline-info{% endif %}">Confirmed</a>
+                <a href="{{ url_for('orders', status='processing') }}" class="btn btn-sm {% if status_filter == 'processing' %}btn-primary{% else %}btn-outline-primary{% endif %}">Processing</a>
+                <a href="{{ url_for('orders', status='shipped') }}" class="btn btn-sm {% if status_filter == 'shipped' %}btn-primary{% else %}btn-outline-primary{% endif %}">Shipped</a>
+                <a href="{{ url_for('orders', status='delivered') }}" class="btn btn-sm {% if status_filter == 'delivered' %}btn-success{% else %}btn-outline-success{% endif %}">Delivered</a>
+                <a href="{{ url_for('orders', status='cancelled') }}" class="btn btn-sm {% if status_filter == 'cancelled' %}btn-danger{% else %}btn-outline-danger{% endif %}">Cancelled</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="text-muted">{{ total }} orders{% if status_filter %} ({{ status_filter }}){% endif %}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td><code>{{ order.order_id[:8] }}...</code></td>
+                        <td>
+                            <a href="{{ url_for('customer_detail', customer_id=order.customer_id) }}">
+                                {{ order.first_name }} {{ order.last_name }}
+                            </a>
+                            <br><small class="text-muted">{{ order.email }}</small>
+                        </td>
+                        <td>{{ order.order_date[:10] }}</td>
+                        <td><span class="badge status-{{ order.status }} status-badge">{{ order.status }}</span></td>
+                        <td><strong>{{ "%.2f"|format(order.total_amount) }} {{ order.currency }}</strong></td>
+                        <td>
+                            <a href="{{ url_for('order_detail', order_id=order.order_id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="bi bi-inbox fs-1 text-muted"></i>
+                            <p class="text-muted mb-0">No orders found</p>
+                            <a href="{{ url_for('create_order') }}">Create your first order</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if total_pages > 1 %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page - 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>
+            </li>
+            {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                    <li class="page-item"><a class="page-link" href="?page={{ p }}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ p }}</a></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page + 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

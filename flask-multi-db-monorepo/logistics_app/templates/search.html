@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Search Deliveries{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1><i class="bi bi-search"></i> Delivery Search</h1>
+    <p class="text-muted">Search using full-text, vector, or hybrid search</p>
+
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="q" 
+                                   value="{{ query }}" placeholder="Search by customer, address, notes..." autofocus>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Search</button>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label">Search Type:</label>
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="type" id="type-keyword" value="keyword"
+                               {% if search_type == 'keyword' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="type-keyword">
+                            <i class="bi bi-fonts"></i> Full-Text
+                        </label>
+
+                        <input type="radio" class="btn-check" name="type" id="type-vector" value="vector"
+                               {% if search_type == 'vector' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="type-vector">
+                            <i class="bi bi-vector-pen"></i> Vector
+                        </label>
+
+                        <input type="radio" class="btn-check" name="type" id="type-hybrid" value="hybrid"
+                               {% if search_type == 'hybrid' or not search_type %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="type-hybrid">
+                            <i class="bi bi-lightning"></i> Hybrid
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Search Method Info -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 {% if search_type == 'keyword' %}border-primary{% endif %}">
+                <div class="card-body">
+                    <h6><i class="bi bi-fonts text-primary"></i> Full-Text ($text)</h6>
+                    <small class="text-muted">MongoDB text index search on customer, address, notes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 {% if search_type == 'vector' %}border-primary{% endif %}">
+                <div class="card-body">
+                    <h6><i class="bi bi-vector-pen text-primary"></i> Vector (cosmosSearch)</h6>
+                    <small class="text-muted">Semantic similarity using Azure Cosmos DB vector index</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 {% if search_type == 'hybrid' or not search_type %}border-primary{% endif %}">
+                <div class="card-body">
+                    <h6><i class="bi bi-lightning text-primary"></i> Hybrid (RRF)</h6>
+                    <small class="text-muted">Combines text + vector with Reciprocal Rank Fusion</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    {% if search_info %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4>Results for "{{ search_info.query }}"</h4>
+            <small class="text-muted">{{ search_info.count }} results using {{ search_info.method }}</small>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="list-group">
+        {% for delivery in results %}
+        <a href="{{ url_for('delivery_detail', delivery_id=delivery.delivery_id) }}" 
+           class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <div>
+                    <h5 class="mb-1">{{ delivery.customer_name }}</h5>
+                    <p class="mb-1">
+                        <code>{{ delivery.tracking_number }}</code>
+                        <span class="badge status-{{ delivery.status }} ms-2">{{ delivery.status | replace('_', ' ') }}</span>
+                    </p>
+                    <small class="text-muted">
+                        {{ delivery.address.street if delivery.address else '' }}, 
+                        {{ delivery.address.city if delivery.address else '' }}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">
+                        Score: {{ "%.4f"|format(delivery.search_score) }}
+                    </small>
+                    <br>
+                    <span class="badge bg-info">{{ delivery.search_type }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No deliveries found for "{{ query }}".
+    </div>
+    {% else %}
+    <div class="alert alert-secondary">
+        <i class="bi bi-lightbulb"></i> Enter a search query. Try customer names, cities, or tracking numbers.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

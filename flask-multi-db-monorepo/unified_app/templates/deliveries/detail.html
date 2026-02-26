@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery {{ delivery.tracking_number or delivery._id[:12] }} - Multi-Database Demo{% endblock %}
+{% block page_title %}Delivery Details{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('deliveries') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> Back to Deliveries
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-truck"></i> Delivery Details</span>
+                <span class="badge db-mongo">DocumentDB</span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Tracking Number</label>
+                        <p class="h5"><code>{{ delivery.tracking_number or 'Not assigned' }}</code></p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Status</label>
+                        <p><span class="badge status-{{ delivery.status|lower|replace(' ', '_') }} fs-6">
+                            {{ delivery.status|replace('_', ' ')|title | translate }}
+                        </span></p>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Customer</label>
+                        <p>{{ delivery.customer_name or 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Linked Order</label>
+                        <p>
+                            {% if delivery.order_id %}
+                            <a href="{{ url_for('order_detail', order_id=delivery.order_id) }}">
+                                <code>{{ delivery.order_id }}</code>
+                            </a>
+                            {% else %}
+                            <span class="text-muted">No linked order</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-box-arrow-right text-primary"></i> Origin</h6>
+                        <p class="mb-1">{{ (delivery.origin_address or 'Warehouse') | translate }}</p>
+                        <p class="text-muted">{{ (delivery.origin_city or 'N/A') | translate }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-box-arrow-in-right text-success"></i> Destination</h6>
+                        <p class="mb-1">{{ (delivery.destination_address or 'N/A') | translate }}</p>
+                        <p class="text-muted">{{ (delivery.destination_city or 'N/A') | translate }}</p>
+                    </div>
+                </div>
+                
+                {% if delivery.estimated_delivery %}
+                <div class="alert alert-info">
+                    <i class="bi bi-clock"></i> 
+                    <strong>Estimated Delivery:</strong> {{ delivery.estimated_delivery }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Timeline -->
+        {% if delivery.status_history %}
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> Delivery Timeline
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for event in delivery.status_history|reverse %}
+                    <div class="timeline-item mb-3">
+                        <div class="d-flex">
+                            <div class="timeline-marker bg-primary rounded-circle me-3" style="width: 12px; height: 12px; margin-top: 5px;"></div>
+                            <div>
+                                <h6 class="mb-1">{{ event.status|replace('_', ' ')|title | translate }}</h6>
+                                <small class="text-muted">{{ event.timestamp }}</small>
+                                {% if event.location %}
+                                <p class="small mb-0 text-muted"><i class="bi bi-geo-alt"></i> {{ event.location }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Partner Info -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-building"></i> Delivery Partner
+            </div>
+            <div class="card-body">
+                {% if delivery.partner_name %}
+                <h6>{{ delivery.partner_name }}</h6>
+                {% if delivery.partner_id %}
+                <a href="{{ url_for('partner_detail', partner_id=delivery.partner_id) }}" class="btn btn-sm btn-outline-primary">
+                    View Partner
+                </a>
+                {% endif %}
+                {% else %}
+                <p class="text-muted mb-2">No partner assigned</p>
+                <a href="{{ url_for('dispatch') }}" class="btn btn-sm btn-warning">
+                    <i class="bi bi-send"></i> Go to Dispatch
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-gear"></i> Actions
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_delivery_status', delivery_id=delivery.delivery_id) }}" method="POST" class="mb-3">
+                    <label class="form-label small">Update Status</label>
+                    <div class="input-group">
+                        <select name="status" class="form-select">
+                            {% for status in ['pending', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed'] %}
+                            <option value="{{ status }}" {{ 'selected' if delivery.status == status else '' }}>
+                                {{ status|replace('_', ' ')|title }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </div>
+                </form>
+                
+                {% if delivery.order_id %}
+                <hr>
+                <a href="{{ url_for('order_detail', order_id=delivery.order_id) }}" class="btn btn-outline-info w-100">
+                    <i class="bi bi-cart3"></i> View Order
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

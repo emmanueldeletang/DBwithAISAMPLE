@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Ask Questions - Logistics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .question-card {
+        border-left: 4px solid var(--secondary-color);
+    }
+    .result-card {
+        border-left: 4px solid #17a2b8;
+    }
+    .error-card {
+        border-left: 4px solid #dc3545;
+    }
+    .suggested-btn {
+        font-size: 0.85rem;
+        margin: 3px;
+    }
+    .query-preview {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border-radius: 8px;
+        padding: 15px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.85rem;
+        overflow-x: auto;
+    }
+    .result-table {
+        font-size: 0.9rem;
+    }
+    .result-table th {
+        background: #f8f9fa;
+        position: sticky;
+        top: 0;
+    }
+    .results-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 20px;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+    .ai-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="bi bi-chat-dots"></i> Ask Questions</h1>
+            <p class="text-muted mb-0">
+                Query your logistics data using natural language
+                <span class="ai-badge ms-2"><i class="bi bi-stars"></i> Powered by AI</span>
+            </p>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Question Form -->
+        <div class="col-lg-8">
+            <div class="card question-card mb-4">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('ask_question') }}">
+                        <div class="mb-3">
+                            <label for="question" class="form-label fw-bold">
+                                <i class="bi bi-question-circle"></i> Your Question
+                            </label>
+                            <div class="input-group input-group-lg">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="question" 
+                                       name="question" 
+                                       placeholder="Ask anything about deliveries, partners, statistics..."
+                                       value="{{ question }}"
+                                       autofocus>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i> Ask
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Suggested Questions -->
+                    <div class="mt-3">
+                        <small class="text-muted">Try asking:</small>
+                        <div class="mt-2">
+                            {% for sq in suggested_questions[:6] %}
+                            <button type="button" class="btn btn-outline-secondary btn-sm suggested-btn"
+                                    onclick="document.getElementById('question').value='{{ sq }}'; document.querySelector('form').submit();">
+                                {{ sq }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if error %}
+            <!-- Error -->
+            <div class="card error-card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-exclamation-triangle"></i> Error
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ error }}</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if result and result.success %}
+            <!-- Results -->
+            <div class="card result-card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-check-circle text-success"></i>
+                        <strong>Results</strong>
+                        <span class="badge bg-info ms-2">{{ result.count }} {{ 'record' if result.count == 1 else 'records' }}</span>
+                    </div>
+                    <span class="badge bg-secondary">{{ result.query_type }}</span>
+                </div>
+                <div class="card-body">
+                    {% if result.description %}
+                    <p class="text-muted mb-3"><i class="bi bi-info-circle"></i> {{ result.description }}</p>
+                    {% endif %}
+                    
+                    {% if result.results %}
+                    <div class="results-container">
+                        {% if result.query_type == 'aggregation' %}
+                        <!-- Aggregation Results - Show as cards or table depending on structure -->
+                        {% set first_result = result.results[0] if result.results else {} %}
+                        {% if '_id' in first_result and 'count' in first_result and first_result|length <= 3 %}
+                        <!-- Simple count aggregation - show as stats -->
+                        <div class="row">
+                            {% for item in result.results %}
+                            <div class="col-md-4 col-lg-3 mb-3">
+                                <div class="card stat-card">
+                                    <div class="stat-value">{{ item.count }}</div>
+                                    <div class="text-muted">{{ item._id or 'N/A' }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <!-- Complex aggregation - show as table -->
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover result-table">
+                                <thead>
+                                    <tr>
+                                        {% for key in first_result.keys() %}
+                                        <th>{{ key }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in result.results %}
+                                    <tr>
+                                        {% for key, value in item.items() %}
+                                        <td>
+                                            {% if value is mapping %}
+                                            <small class="text-muted">{{ value }}</small>
+                                            {% elif value is iterable and value is not string %}
+                                            {{ value|join(', ') }}
+                                            {% else %}
+                                            {{ value }}
+                                            {% endif %}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                        
+                        {% else %}
+                        <!-- Find Results - Show as cards -->
+                        <div class="row">
+                            {% for doc in result.results %}
+                            <div class="col-12 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            {% if doc.delivery_id %}
+                                            <!-- Delivery document -->
+                                            <div class="col-md-4">
+                                                <strong>{{ doc.delivery_id }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ doc.tracking_number }}</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <i class="bi bi-person"></i> {{ doc.customer_name }}
+                                                <br>
+                                                <small class="text-muted">
+                                                    {% if doc.address %}
+                                                    {{ doc.address.city }}, {{ doc.address.country }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <span class="badge status-{{ doc.status }}">{{ doc.status }}</span>
+                                                {% if doc.partner_id %}
+                                                <br><small class="text-muted">Partner: {{ doc.partner_id }}</small>
+                                                {% endif %}
+                                            </div>
+                                            {% elif doc.partner_id %}
+                                            <!-- Partner document -->
+                                            <div class="col-md-4">
+                                                <strong>{{ doc.name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ doc.partner_id }}</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <i class="bi bi-envelope"></i> {{ doc.contact_email }}
+                                                <br>
+                                                <i class="bi bi-telephone"></i> {{ doc.contact_phone }}
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                {% if doc.active %}
+                                                <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                                <br>
+                                                <small class="text-muted">
+                                                    {% if doc.service_areas %}
+                                                    {{ doc.service_areas|join(', ') }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            {% else %}
+                                            <!-- Generic document -->
+                                            <div class="col-12">
+                                                <pre class="mb-0" style="font-size: 0.8rem;">{{ doc|tojson(indent=2) }}</pre>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No results found.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Generated Query Preview -->
+            {% if result.generated_query %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-code-slash"></i> Generated MongoDB Query
+                    <button class="btn btn-sm btn-outline-secondary float-end" 
+                            onclick="navigator.clipboard.writeText(document.getElementById('query-code').textContent)">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <pre class="query-preview mb-0" id="query-code">{{ result.generated_query|tojson(indent=2) }}</pre>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- More Suggestions -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-lightbulb"></i> More Questions to Try
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        {% for sq in suggested_questions %}
+                        <li class="mb-2">
+                            <a href="#" onclick="document.getElementById('question').value='{{ sq }}'; document.querySelector('form').submit(); return false;"
+                               class="text-decoration-none">
+                                <i class="bi bi-arrow-right-circle text-primary"></i> {{ sq }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Tips -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-info-circle"></i> Tips
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0 small">
+                        <li class="mb-2">Ask about <strong>counts</strong>: "How many pending deliveries?"</li>
+                        <li class="mb-2">Ask about <strong>breakdowns</strong>: "Deliveries by status"</li>
+                        <li class="mb-2">Ask about <strong>specific records</strong>: "Show deliveries in Paris"</li>
+                        <li class="mb-2">Ask about <strong>partners</strong>: "List all active partners"</li>
+                        <li class="mb-2">Ask about <strong>customers</strong>: "Find deliveries for Jean Dupont"</li>
+                        <li>Use natural language - the AI understands context!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

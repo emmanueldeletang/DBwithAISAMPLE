@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}Create Order{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .product-item:hover {
+        background-color: #f8f9fa;
+    }
+    .product-item.selected {
+        background-color: #e7f3ff;
+        border-color: #0d6efd;
+    }
+    .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    /* Customer search styles */
+    .customer-search-wrapper {
+        position: relative;
+    }
+    .customer-search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        max-height: 350px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 0.375rem 0.375rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: none;
+    }
+    .customer-search-results.show {
+        display: block;
+    }
+    .customer-result-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.15s;
+    }
+    .customer-result-item:hover {
+        background-color: #e7f3ff;
+    }
+    .customer-result-item .name {
+        font-weight: 600;
+        color: #333;
+    }
+    .customer-result-item .details {
+        font-size: 0.82rem;
+        color: #6c757d;
+    }
+    .customer-result-item .score-badge {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 10px;
+    }
+    .selected-customer-card {
+        background-color: #e7f3ff;
+        border: 1px solid #0d6efd;
+        border-radius: 0.375rem;
+        padding: 12px;
+        display: none;
+    }
+    .selected-customer-card.show {
+        display: block;
+    }
+    .search-type-pills .btn {
+        font-size: 0.78rem;
+        padding: 2px 10px;
+    }
+    .spinner-search {
+        display: none;
+        width: 1rem;
+        height: 1rem;
+    }
+    .spinner-search.show {
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('orders') }}">Orders</a></li>
+            <li class="breadcrumb-item active">Create Order</li>
+        </ol>
+    </nav>
+
+    <h1><i class="bi bi-bag-plus"></i> Create Order</h1>
+    <p class="text-muted">Select a customer and add products to the order</p>
+
+    <form method="post" id="orderForm">
+        <div class="row">
+            <!-- Customer Selection via Similarity Search -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-person-search"></i> 1. Find Customer</h5>
+                        <div class="search-type-pills btn-group" role="group">
+                            <input type="radio" class="btn-check" name="searchType" id="searchHybrid" value="hybrid" checked>
+                            <label class="btn btn-outline-primary" for="searchHybrid" title="Trigram + Vector">Hybrid</label>
+                            <input type="radio" class="btn-check" name="searchType" id="searchTrigram" value="trigram">
+                            <label class="btn btn-outline-primary" for="searchTrigram" title="pg_trgm">Trigram</label>
+                            <input type="radio" class="btn-check" name="searchType" id="searchVector" value="vector">
+                            <label class="btn btn-outline-primary" for="searchVector" title="pgvector">Vector</label>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <input type="hidden" name="customer_id" id="selectedCustomerId" required>
+
+                        <div class="customer-search-wrapper">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="customerSearchInput"
+                                       placeholder="Type a name, email, city..."
+                                       autocomplete="off">
+                                <span class="input-group-text">
+                                    <div class="spinner-border spinner-search text-primary" id="searchSpinner" role="status">
+                                        <span class="visually-hidden">Searching...</span>
+                                    </div>
+                                </span>
+                            </div>
+                            <div class="customer-search-results" id="customerSearchResults"></div>
+                        </div>
+
+                        <!-- Selected customer card -->
+                        <div class="selected-customer-card mt-3" id="selectedCustomerCard">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong id="selectedCustomerName"></strong><br>
+                                    <small class="text-muted" id="selectedCustomerEmail"></small><br>
+                                    <small class="text-muted" id="selectedCustomerLocation"></small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="clearCustomerBtn" title="Clear selection">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i> Similarity search powered by 
+                                <strong>pg_trgm</strong> + <strong>pgvector</strong>
+                            </small>
+                        </div>
+                        
+                        {% if not customers %}
+                        <div class="alert alert-warning mt-3 mb-0">
+                            No customers found. <a href="{{ url_for('add_customer') }}">Add a customer first</a>.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Cart Summary -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-cart"></i> 3. Cart Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="cartItems">
+                            <p class="text-muted text-center py-3">No items in cart</p>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <strong>Total:</strong>
+                            <strong id="cartTotal">0.00 €</strong>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-success w-100" id="submitBtn" disabled>
+                            <i class="bi bi-check-lg"></i> Create Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Selection -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-box"></i> 2. Add Products</h5>
+                        <small class="text-muted">From Azure SQL Product Catalog</small>
+                    </div>
+                    <div class="card-body">
+                        {% if products %}
+                        <div class="row row-cols-1 row-cols-md-2 g-3">
+                            {% for product in products %}
+                            <div class="col">
+                                <div class="card product-item h-100" data-sku="{{ product.sku }}" 
+                                     data-name="{{ product.name }}" data-price="{{ product.price or 0 }}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <h6 class="card-title mb-1">{{ product.name }}</h6>
+                                                <small class="text-muted">{{ product.sku }}</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <strong class="text-primary">{{ "%.2f"|format(product.price|default(0)|float) }} €</strong>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <div class="input-group input-group-sm">
+                                                <button type="button" class="btn btn-outline-secondary qty-minus">-</button>
+                                                <input type="number" class="form-control text-center qty-input" 
+                                                       value="0" min="0" max="99" style="max-width: 60px;">
+                                                <button type="button" class="btn btn-outline-secondary qty-plus">+</button>
+                                                <button type="button" class="btn btn-primary add-to-cart">
+                                                    <i class="bi bi-plus"></i> Add
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning mb-0">
+                            <i class="bi bi-exclamation-triangle"></i> 
+                            No products available. Make sure the Product App is running on port 5001.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden inputs for cart items -->
+        <div id="cartInputs"></div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ===== CUSTOMER SIMILARITY SEARCH =====
+    const searchInput = document.getElementById('customerSearchInput');
+    const searchResults = document.getElementById('customerSearchResults');
+    const searchSpinner = document.getElementById('searchSpinner');
+    const selectedCustomerId = document.getElementById('selectedCustomerId');
+    const selectedCustomerCard = document.getElementById('selectedCustomerCard');
+    const selectedCustomerName = document.getElementById('selectedCustomerName');
+    const selectedCustomerEmail = document.getElementById('selectedCustomerEmail');
+    const selectedCustomerLocation = document.getElementById('selectedCustomerLocation');
+    const clearCustomerBtn = document.getElementById('clearCustomerBtn');
+
+    let searchTimeout = null;
+
+    function getSearchType() {
+        return document.querySelector('input[name="searchType"]:checked').value;
+    }
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+            searchResults.classList.remove('show');
+            searchResults.innerHTML = '';
+            return;
+        }
+
+        searchSpinner.classList.add('show');
+
+        // Debounce: wait 300ms after user stops typing
+        searchTimeout = setTimeout(() => {
+            const searchType = getSearchType();
+            fetch(`/api/customers/search?q=${encodeURIComponent(query)}&type=${searchType}`)
+                .then(res => res.json())
+                .then(data => {
+                    searchSpinner.classList.remove('show');
+                    renderSearchResults(data.results || []);
+                })
+                .catch(err => {
+                    searchSpinner.classList.remove('show');
+                    console.error('Search error:', err);
+                    searchResults.innerHTML = '<div class="p-3 text-danger"><i class="bi bi-exclamation-triangle"></i> Search failed</div>';
+                    searchResults.classList.add('show');
+                });
+        }, 300);
+    });
+
+    // Re-trigger search when search type changes
+    document.querySelectorAll('input[name="searchType"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const query = searchInput.value.trim();
+            if (query.length >= 2) {
+                searchInput.dispatchEvent(new Event('input'));
+            }
+        });
+    });
+
+    function renderSearchResults(results) {
+        if (results.length === 0) {
+            searchResults.innerHTML = '<div class="p-3 text-muted text-center"><i class="bi bi-search"></i> No customers found</div>';
+            searchResults.classList.add('show');
+            return;
+        }
+
+        let html = '';
+        results.forEach(r => {
+            const score = r.search_score ? (r.search_score * 100).toFixed(0) : '';
+            const scoreClass = r.search_score > 0.7 ? 'bg-success text-white' :
+                               r.search_score > 0.4 ? 'bg-warning text-dark' : 'bg-secondary text-white';
+            const typeBadge = r.search_type === 'hybrid' ? 'bi-shuffle' :
+                              r.search_type === 'vector' ? 'bi-diagram-3' : 'bi-fonts';
+
+            html += `
+                <div class="customer-result-item" 
+                     data-id="${r.customer_id}" 
+                     data-name="${r.first_name} ${r.last_name}"
+                     data-email="${r.email || ''}"
+                     data-city="${r.city || ''}"
+                     data-country="${r.country || ''}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="name">${r.first_name} ${r.last_name}</span>
+                            <div class="details">${r.email || ''}${r.city ? ' · ' + r.city : ''}${r.country ? ', ' + r.country : ''}</div>
+                        </div>
+                        <div class="text-end">
+                            ${score ? `<span class="score-badge ${scoreClass}">${score}%</span>` : ''}
+                            <br><small class="text-muted"><i class="bi ${typeBadge}"></i> ${r.search_type || ''}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        searchResults.innerHTML = html;
+        searchResults.classList.add('show');
+
+        // Attach click handlers
+        searchResults.querySelectorAll('.customer-result-item').forEach(item => {
+            item.addEventListener('click', () => selectCustomer(item));
+        });
+    }
+
+    function selectCustomer(item) {
+        const id = item.dataset.id;
+        const name = item.dataset.name;
+        const email = item.dataset.email;
+        const city = item.dataset.city;
+        const country = item.dataset.country;
+
+        selectedCustomerId.value = id;
+        selectedCustomerName.textContent = name;
+        selectedCustomerEmail.textContent = email;
+        selectedCustomerLocation.textContent = [city, country].filter(Boolean).join(', ');
+        selectedCustomerCard.classList.add('show');
+
+        searchResults.classList.remove('show');
+        searchInput.value = name;
+
+        updateSubmitButton();
+    }
+
+    clearCustomerBtn.addEventListener('click', () => {
+        selectedCustomerId.value = '';
+        selectedCustomerCard.classList.remove('show');
+        searchInput.value = '';
+        searchInput.focus();
+        updateSubmitButton();
+    });
+
+    // Close results when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.customer-search-wrapper')) {
+            searchResults.classList.remove('show');
+        }
+    });
+
+    // ===== CART LOGIC =====
+    const cart = {};
+    
+    function updateCartDisplay() {
+        const cartItems = document.getElementById('cartItems');
+        const cartInputs = document.getElementById('cartInputs');
+        const cartTotal = document.getElementById('cartTotal');
+        
+        let html = '';
+        let inputsHtml = '';
+        let total = 0;
+        
+        for (const [sku, item] of Object.entries(cart)) {
+            if (item.quantity > 0) {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                
+                html += `
+                    <div class="cart-item">
+                        <div>
+                            <strong>${item.name}</strong><br>
+                            <small class="text-muted">${item.quantity} x ${item.price.toFixed(2)} €</small>
+                        </div>
+                        <div>
+                            <strong>${itemTotal.toFixed(2)} €</strong>
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="removeFromCart('${sku}')">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                inputsHtml += `<input type="hidden" name="product_sku" value="${sku}">`;
+                inputsHtml += `<input type="hidden" name="quantity" value="${item.quantity}">`;
+            }
+        }
+        
+        cartItems.innerHTML = html || '<p class="text-muted text-center py-3">No items in cart</p>';
+        cartInputs.innerHTML = inputsHtml;
+        cartTotal.textContent = total.toFixed(2) + ' €';
+        updateSubmitButton();
+    }
+
+    function updateSubmitButton() {
+        const submitBtn = document.getElementById('submitBtn');
+        const hasCustomer = !!selectedCustomerId.value;
+        const hasItems = Object.values(cart).some(item => item.quantity > 0);
+        submitBtn.disabled = !(hasCustomer && hasItems);
+    }
+    
+    function addToCart(sku, name, price, quantity) {
+        if (quantity <= 0) return;
+        
+        if (cart[sku]) {
+            cart[sku].quantity += quantity;
+        } else {
+            cart[sku] = { name, price, quantity };
+        }
+        
+        updateCartDisplay();
+    }
+    
+    function removeFromCart(sku) {
+        delete cart[sku];
+        updateCartDisplay();
+    }
+    
+    document.querySelectorAll('.product-item').forEach(item => {
+        const sku = item.dataset.sku;
+        const name = item.dataset.name;
+        const price = parseFloat(item.dataset.price);
+        const qtyInput = item.querySelector('.qty-input');
+        
+        item.querySelector('.qty-minus').addEventListener('click', () => {
+            qtyInput.value = Math.max(0, parseInt(qtyInput.value) - 1);
+        });
+        
+        item.querySelector('.qty-plus').addEventListener('click', () => {
+            qtyInput.value = Math.min(99, parseInt(qtyInput.value) + 1);
+        });
+        
+        item.querySelector('.add-to-cart').addEventListener('click', () => {
+            const qty = parseInt(qtyInput.value);
+            if (qty > 0) {
+                addToCart(sku, name, price, qty);
+                qtyInput.value = 0;
+            }
+        });
+    });
+</script>
+{% endblock %}

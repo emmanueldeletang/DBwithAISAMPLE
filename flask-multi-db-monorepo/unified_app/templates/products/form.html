@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if product else 'Add' }} Product - Multi-Database Demo{% endblock %}
+{% block page_title %}{{ 'Edit' if product else 'Add' }} Product{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('products') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> Back to Products
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-{{ 'pencil' if product else 'plus-circle' }}"></i> 
+                {{ 'Edit' if product else 'Add New' }} Product
+            </div>
+            <form method="POST" enctype="multipart/form-data" action="{{ url_for('edit_product', product_id=product.sku) if product else url_for('add_product') }}">
+                <div class="card-body">
+                    {% if not product %}
+                    <div class="mb-3">
+                        <label class="form-label">SKU <span class="text-danger">*</span></label>
+                        <input type="text" name="sku" class="form-control" 
+                               placeholder="e.g., PROD-001" required>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Product Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" 
+                               value="{{ product.name if product else '' }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea name="description" class="form-control" rows="4" required>{{ product.description if product else '' }}</textarea>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle"></i> 
+                            A vector embedding will be automatically generated from this description for semantic search.
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Category <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select" required>
+                                <option value="">Select category...</option>
+                                {% for cat in ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports', 'Food & Beverages', 'Health', 'Toys', 'Automotive', 'Other'] %}
+                                <option value="{{ cat }}" {{ 'selected' if product and product.category == cat else '' }}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Price ($) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" min="0" name="price" class="form-control" 
+                                   value="{{ product.price if product else '' }}" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Stock Quantity <span class="text-danger">*</span></label>
+                            <input type="number" min="0" name="stock_quantity" class="form-control" 
+                                   value="{{ product.stock if product else '' }}" required>
+                        </div>
+                    </div>
+
+                    <!-- Image Section -->
+                    <hr>
+                    <h6><i class="bi bi-image"></i> Product Image</h6>
+
+                    {% if product and product.image_url %}
+                    <div class="mb-3 text-center">
+                        <img src="{{ url_for('api_product_image', sku=product.sku) }}" alt="{{ product.name }}" 
+                             class="img-thumbnail" style="max-height: 180px;">
+                        <p class="text-muted small mt-1">Current product image</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="image_option" id="image_none" value="none" checked>
+                            <label class="form-check-label" for="image_none">
+                                {% if product and product.image_url %}Keep current image{% else %}No image{% endif %}
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="image_option" id="image_upload" value="upload">
+                            <label class="form-check-label" for="image_upload">
+                                <i class="bi bi-upload"></i> Upload an image
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="image_option" id="image_generate" value="generate">
+                            <label class="form-check-label" for="image_generate">
+                                <i class="bi bi-stars"></i> Generate with AI (DALL-E 3)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Upload section -->
+                    <div id="upload_section" style="display: none;" class="mb-3">
+                        <label for="image_file" class="form-label">Choose image file</label>
+                        <input type="file" class="form-control" id="image_file" name="image_file"
+                               accept="image/png,image/jpeg,image/gif,image/webp">
+                        <div class="form-text">Supported: PNG, JPEG, GIF, WebP</div>
+                    </div>
+
+                    <!-- Generate section -->
+                    <div id="generate_section" style="display: none;" class="mb-3">
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-stars"></i>
+                            An image will be generated using <strong>Azure OpenAI DALL-E 3</strong> based on the product name, description and category, then stored in Azure Blob Storage.
+                            <br><small class="text-muted">This may take a few seconds.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> {{ 'Update' if product else 'Create' }} Product
+                    </button>
+                    <a href="{{ url_for('products') }}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightbulb"></i> Tips
+            </div>
+            <div class="card-body">
+                <h6>Writing Good Descriptions</h6>
+                <p class="small text-muted">
+                    A detailed description improves vector search accuracy. Include:
+                </p>
+                <ul class="small text-muted">
+                    <li>Key features and specifications</li>
+                    <li>Use cases and benefits</li>
+                    <li>Materials or ingredients</li>
+                    <li>Target audience</li>
+                </ul>
+                <hr>
+                <h6>Vector Embeddings</h6>
+                <p class="small text-muted mb-0">
+                    When you save the product, a 1536-dimensional vector embedding will be 
+                    generated using Azure OpenAI. This enables semantic search - finding 
+                    products by meaning, not just keywords.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const radios = document.querySelectorAll('input[name="image_option"]');
+    const uploadSection = document.getElementById('upload_section');
+    const generateSection = document.getElementById('generate_section');
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            uploadSection.style.display = this.value === 'upload' ? 'block' : 'none';
+            generateSection.style.display = this.value === 'generate' ? 'block' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+flask_session/
+unified_app/flask_session/
+*.egg-info/
+.env

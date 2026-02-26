@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "postgres-orders": {
+      "command": "python",
+      "args": ["mcp_postgres_server/server.py"],
+      "cwd": "${workspaceFolder}/flask-multi-db-monorepo",
+      "env": {
+        "POSTGRES_HOST": "${env:POSTGRES_HOST}",
+        "POSTGRES_PORT": "${env:POSTGRES_PORT}",
+        "POSTGRES_DATABASE": "${env:POSTGRES_DATABASE}",
+        "POSTGRES_USER": "${env:POSTGRES_USER}",
+        "POSTGRES_PASSWORD": "${env:POSTGRES_PASSWORD}"
+      }
+    }
+  }
+}

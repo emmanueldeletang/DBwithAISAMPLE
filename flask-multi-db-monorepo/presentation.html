@@ -117,10 +117,14 @@
             border-left: 4px solid #336791;
         }
         
-        .card.mongodb {
+        .card.DocumentDB {
             border-left: 4px solid #00ed64;
         }
         
+        .card.cosmosdb-nosql {
+            border-left: 4px solid #f59e0b;
+        }
+
         .card.openai {
             border-left: 4px solid #10a37f;
         }
@@ -177,7 +181,8 @@
         .flask-box { background: linear-gradient(135deg, #11998e, #38ef7d); color: #000; }
         .db-azure { background: linear-gradient(135deg, #0078d4, #00bcf2); }
         .db-postgres { background: linear-gradient(135deg, #336791, #5995c7); }
-        .db-mongo { background: linear-gradient(135deg, #00684a, #00ed64); color: #000; }
+        .db-DocumentDB { background: linear-gradient(135deg, #00684a, #00ed64); color: #000; }
+        .db-cosmosnosql { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #000; }
         .ai-box { background: linear-gradient(135deg, #10a37f, #33d6a6); color: #000; }
         .mcp-box { background: linear-gradient(135deg, #ff6b6b, #feca57); color: #000; }
         
@@ -294,13 +299,14 @@
             <h1>Multi-Database Demo</h1>
             <p class="subtitle">Azure Database Services + AI-Powered Search</p>
             <p style="font-size: 1.3rem; margin: 30px 0; color: #e0e0e0;">
-                A unified Flask application showcasing three Azure database services<br>
-                with vector search, natural language queries, and MCP integration
+                A unified Flask application showcasing four Azure database services<br>
+                with vector search, natural language queries, activity tracking, and MCP integration
             </p>
             <div class="tech-icons">
                 <div class="tech-icon db-azure">Azure SQL</div>
                 <div class="tech-icon db-postgres">PostgreSQL</div>
-                <div class="tech-icon db-mongo">MongoDB vCore</div>
+                <div class="tech-icon db-DocumentDB">DocumentDB vCore</div>
+                <div class="tech-icon db-cosmosnosql">Cosmos DB NoSQL</div>
                 <div class="tech-icon ai-box">Azure OpenAI</div>
             </div>
             <p style="margin-top: 50px; color: #666;">Database Days - Mars 2026</p>
@@ -321,7 +327,8 @@
                 <div class="diagram-row">
                     <div class="diagram-box db-azure">Azure SQL<br><small>Products</small></div>
                     <div class="diagram-box db-postgres">PostgreSQL<br><small>Orders</small></div>
-                    <div class="diagram-box db-mongo">MongoDB<br><small>Logistics</small></div>
+                    <div class="diagram-box db-DocumentDB">DocumentDB<br><small>Logistics</small></div>
+                    <div class="diagram-box db-cosmosnosql">Cosmos DB NoSQL<br><small>Activities</small></div>
                 </div>
                 <div class="diagram-arrow" style="margin-top: 30px;">⬆ Embeddings</div>
                 <div class="diagram-row">
@@ -334,7 +341,7 @@
         <!-- Slide 3: Database Domains -->
         <div class="slide" id="slide3">
             <h2>📊 Database Domains</h2>
-            <div class="grid-3">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 30px;">
                 <div class="card azure-sql">
                     <h3>🔵 Azure SQL</h3>
                     <p><strong>Domain:</strong> Product Catalog</p>
@@ -363,8 +370,8 @@
                         <li>psycopg2 driver</li>
                     </ul>
                 </div>
-                <div class="card mongodb">
-                    <h3>🍃 MongoDB vCore</h3>
+                <div class="card DocumentDB">
+                    <h3>🍃 DocumentDB vCore</h3>
                     <p><strong>Domain:</strong> Logistics</p>
                     <div style="margin-top: 15px;">
                         <span class="badge badge-green">Deliveries</span>
@@ -375,6 +382,20 @@
                         <li>cosmosSearch</li>
                         <li>Full-text search</li>
                         <li>pymongo driver</li>
+                    </ul>
+                </div>
+                <div class="card cosmosdb-nosql">
+                    <h3>📊 Cosmos DB NoSQL</h3>
+                    <p><strong>Domain:</strong> Activity Tracking</p>
+                    <div style="margin-top: 15px;">
+                        <span class="badge badge-orange">Activities</span>
+                        <span class="badge badge-orange">Audit Log</span>
+                    </div>
+                    <ul class="feature-list">
+                        <li>Partition key /email</li>
+                        <li>Composite index</li>
+                        <li>Cosmos SQL queries</li>
+                        <li>azure-cosmos SDK</li>
                     </ul>
                 </div>
             </div>
@@ -406,7 +427,7 @@
                         <td><code>&lt;=&gt;</code> cosine distance</td>
                     </tr>
                     <tr>
-                        <td><span class="badge badge-green">MongoDB</span></td>
+                        <td><span class="badge badge-green">DocumentDB</span></td>
                         <td>Array of floats</td>
                         <td>cosmosSearch</td>
                         <td><code>$vectorSearch</code></td>
@@ -426,8 +447,8 @@
         <!-- Slide 5: Natural Language Queries -->
         <div class="slide" id="slide5">
             <h2>💬 Natural Language Query Interface</h2>
-            <p style="margin-bottom: 30px;">Ask questions in plain French → AI generates SQL/MongoDB queries</p>
-            <div class="grid-3">
+            <p style="margin-bottom: 30px;">Ask questions in plain French → AI generates SQL/DocumentDB/Cosmos SQL queries</p>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 30px;">
                 <div class="card azure-sql">
                     <h3>Azure SQL</h3>
                     <p style="color: #888; font-style: italic;">"Quels produits ont un stock faible?"</p>
@@ -440,11 +461,17 @@
                     <p style="margin-top: 10px;">↓ SQL</p>
                     <code>SELECT COUNT(*) FROM orders WHERE order_date &gt;= ...</code>
                 </div>
-                <div class="card mongodb">
-                    <h3>MongoDB</h3>
+                <div class="card DocumentDB">
+                    <h3>DocumentDB</h3>
                     <p style="color: #888; font-style: italic;">"Livraisons en retard?"</p>
                     <p style="margin-top: 10px;">↓ Aggregation</p>
                     <code>{'status': 'in_transit', 'eta': {'$lt': now}}</code>
+                </div>
+                <div class="card cosmosdb-nosql">
+                    <h3>Cosmos DB NoSQL</h3>
+                    <p style="color: #888; font-style: italic;">"Qui s'est connecté aujourd'hui?"</p>
+                    <p style="margin-top: 10px;">↓ Cosmos SQL</p>
+                    <code>SELECT c.email FROM c JOIN a IN c.activities WHERE a.action='login'</code>
                 </div>
             </div>
             <div style="text-align: center; margin-top: 30px;">
@@ -456,7 +483,7 @@
         <div class="slide" id="slide6">
             <h2>🔌 MCP (Model Context Protocol) Servers</h2>
             <p style="margin-bottom: 20px;">Enable AI agents (Copilot) to query databases directly</p>
-            <div class="grid-3">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 30px;">
                 <div class="card mcp">
                     <h3>postgres-orders</h3>
                     <p><code>mcp_postgres_server/</code></p>
@@ -468,8 +495,8 @@
                     </ul>
                 </div>
                 <div class="card mcp">
-                    <h3>mongodb-logistics</h3>
-                    <p><code>mcp_mongo_server/</code></p>
+                    <h3>DocumentDB-logistics</h3>
+                    <p><code>mcp_DocumentDB_server/</code></p>
                     <ul class="feature-list">
                         <li>get_database_schema</li>
                         <li>query_collection</li>
@@ -485,6 +512,16 @@
                         <li>execute_query</li>
                         <li>search_products</li>
                         <li>get_low_stock</li>
+                    </ul>
+                </div>
+                <div class="card mcp">
+                    <h3>cosmosdb-activities</h3>
+                    <p><code>mcp_cosmos_server/</code></p>
+                    <ul class="feature-list">
+                        <li>get_database_schema</li>
+                        <li>execute_query</li>
+                        <li>get_user_activities</li>
+                        <li>get_distinct_users</li>
                     </ul>
                 </div>
             </div>
@@ -511,14 +548,14 @@
                 <div class="step-number">3</div>
                 <div>
                     <strong>Delivery is auto-created</strong>
-                    <p style="color: #888;">MongoDB → Delivery document with tracking number</p>
+                    <p style="color: #888;">DocumentDB → Delivery document with tracking number</p>
                 </div>
             </div>
             <div class="workflow-step">
                 <div class="step-number">4</div>
                 <div>
                     <strong>Dispatch assigns a partner</strong>
-                    <p style="color: #888;">MongoDB → Partner linked to delivery</p>
+                    <p style="color: #888;">DocumentDB → Partner linked to delivery</p>
                 </div>
             </div>
             <div class="workflow-step">
@@ -540,7 +577,8 @@
                         <li><strong>Flask 3.0+</strong> - Web framework</li>
                         <li><strong>mssql-python</strong> - Azure SQL driver</li>
                         <li><strong>psycopg2</strong> - PostgreSQL driver</li>
-                        <li><strong>pymongo</strong> - MongoDB driver</li>
+                        <li><strong>pyMongo</strong> - DocumentDB driver</li>
+                        <li><strong>azure-cosmos</strong> - Cosmos DB NoSQL SDK</li>
                         <li><strong>MSAL</strong> - Microsoft Entra ID auth</li>
                         <li><strong>OpenAI SDK</strong> - Embeddings & NL queries</li>
                     </ul>
@@ -559,7 +597,8 @@
                     <ul class="feature-list">
                         <li><strong>Azure SQL Database</strong></li>
                         <li><strong>Azure Database for PostgreSQL</strong></li>
-                        <li><strong>Cosmos DB for MongoDB vCore</strong></li>
+                        <li><strong>Cosmos DB for DocumentDB vCore</strong></li>
+                        <li><strong>Cosmos DB NoSQL</strong> (activity tracking)</li>
                         <li><strong>Azure OpenAI Service</strong></li>
                         <li><strong>Microsoft Entra ID</strong></li>
                     </ul>
@@ -610,6 +649,13 @@
                         <li>Public package tracking</li>
                         <li>Delivery status updates</li>
                     </ul>
+
+                    <h3 style="margin: 30px 0 20px 0;">📊 Activity Tracking</h3>
+                    <ul class="feature-list">
+                        <li>Cosmos DB NoSQL per-user daily log</li>
+                        <li>Audit log UI with filters</li>
+                        <li>NL queries on activities</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -626,10 +672,11 @@ flask-multi-db-monorepo/<br>
 ├── unified_app/        # Main application<br>
 ├── product_app/        # Azure SQL services<br>
 ├── order_app/          # PostgreSQL services<br>
-├── logistics_app/      # MongoDB services<br>
+├── logistics_app/      # DocumentDB services<br>
 ├── mcp_sql_server/     # Azure SQL MCP<br>
 ├── mcp_postgres_server/# PostgreSQL MCP<br>
-├── mcp_mongo_server/   # MongoDB MCP<br>
+├── mcp_DocumentDB_server/   # DocumentDB MCP<br>
+├── mcp_cosmos_server/  # Cosmos DB NoSQL MCP<br>
 └── shared/             # Common utilities
                     </code>
                 </div>

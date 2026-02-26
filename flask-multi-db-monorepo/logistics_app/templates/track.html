@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Track Package{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3><i class="bi bi-geo-alt"></i> Track Your Package</h3>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="mb-4">
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="tracking" 
+                                   value="{{ tracking_number }}" 
+                                   placeholder="Enter tracking number (e.g., TRK1234567890)">
+                            <button type="submit" class="btn btn-primary">Track</button>
+                        </div>
+                    </form>
+
+                    {% if delivery %}
+                    <hr>
+                    
+                    <div class="text-center mb-4">
+                        <h4>{{ delivery.tracking_number }}</h4>
+                        <span class="badge status-{{ delivery.status }} status-badge fs-5">
+                            {{ delivery.status | replace('_', ' ') | title }}
+                        </span>
+                        <p class="text-muted mt-2 mb-0">{{ delivery.status_text }}</p>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="bi bi-person"></i> Recipient</h6>
+                                    <p class="mb-0">{{ delivery.customer_name }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="bi bi-geo-alt"></i> Destination</h6>
+                                    <p class="mb-0">{{ delivery.address.city if delivery.address else 'N/A' }}, {{ delivery.address.country if delivery.address else '' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline -->
+                    <h5><i class="bi bi-clock-history"></i> Tracking History</h5>
+                    <div class="tracking-timeline mt-3">
+                        {% for event in delivery.events | reverse %}
+                        <div class="tracking-event">
+                            <strong>{{ event.status | replace('_', ' ') | title }}</strong>
+                            <span class="text-muted small ms-2">{{ event.timestamp[:16] | replace('T', ' ') if event.timestamp else '' }}</span>
+                            <p class="mb-0">{{ event.description }}</p>
+                            {% if event.location %}
+                            <small class="text-muted"><i class="bi bi-geo-alt"></i> {{ event.location }}</small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% elif tracking_number %}
+                    <div class="alert alert-warning text-center">
+                        <i class="bi bi-exclamation-triangle fs-3"></i>
+                        <p class="mb-0">Tracking number not found. Please check and try again.</p>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-box-seam fs-1"></i>
+                        <p>Enter your tracking number to see delivery status</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

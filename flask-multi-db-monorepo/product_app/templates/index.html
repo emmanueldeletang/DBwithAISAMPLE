@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Product Catalog - Home{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h1><i class="bi bi-box-seam"></i> Product Catalog</h1>
+        <p class="lead mb-0">Browse and search our product catalog with AI-powered search</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Quick Search -->
+    <div class="search-box">
+        <form action="{{ url_for('search') }}" method="get" class="row g-3">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control form-control-lg" name="q" placeholder="Search products...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-search"></i> Search
+                </button>
+            </div>
+        </form>
+        <div class="mt-2 text-muted small">
+            <i class="bi bi-info-circle"></i> Try: "wireless headphones", "laptop with long battery", "gaming accessories"
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center p-3">
+                <h3 class="mb-0">{{ total }}</h3>
+                <small class="text-muted">Total Products</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center p-3">
+                <h3 class="mb-0"><i class="bi bi-lightning text-warning"></i></h3>
+                <small class="text-muted">Vector Search Enabled</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center p-3">
+                <h3 class="mb-0"><i class="bi bi-database text-primary"></i></h3>
+                <small class="text-muted">Azure SQL + DiskANN</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4">
+        {% for product in products %}
+        <div class="col">
+            <div class="card product-card">
+                <div class="card-img-top position-relative">
+                    <i class="bi bi-box" style="font-size: 4rem; color: #aaa;"></i>
+                    {% if product.stock > 0 %}
+                        <span class="badge bg-success badge-stock">In Stock</span>
+                    {% else %}
+                        <span class="badge bg-danger badge-stock">Out of Stock</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text text-muted small">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="product-price">{{ "%.2f"|format(product.price) }} {{ product.currency }}</span>
+                        <span class="badge bg-secondary">{{ product.sku }}</span>
+                    </div>
+                    {% if product.tags %}
+                    <div class="mt-2">
+                        {% for tag in product.tags.split(',')[:3] %}
+                        <span class="badge bg-light text-dark">{{ tag.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('product_detail', sku=product.sku) }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-eye"></i> View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="bi bi-inbox"></i> No products found. 
+                <a href="{{ url_for('add_product') }}">Add your first product</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav class="mt-5">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page - 1 }}">Previous</a>
+            </li>
+            {% for p in range(1, total_pages + 1) %}
+                {% if p == page %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                    <li class="page-item"><a class="page-link" href="?page={{ p }}">{{ p }}</a></li>
+                {% elif p == page - 3 or p == page + 3 %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+                <a class="page-link" href="?page={{ page + 1 }}">Next</a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

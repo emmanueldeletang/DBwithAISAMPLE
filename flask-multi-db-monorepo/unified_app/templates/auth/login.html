@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('auth.page_title') }}{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <!-- Language selector at top -->
+        <div class="lang-selector">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-globe2"></i> {{ LANGUAGES.get(current_lang, 'English') }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% for code, label in LANGUAGES.items() %}
+                    <li>
+                        <a class="dropdown-item {% if code == current_lang %}active{% endif %}"
+                           href="{{ url_for('set_language_route', lang=code, next=url_for('login')) }}">
+                            {{ label }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="bi bi-database"></i>
+            </div>
+            <h2>{{ _('auth.heading') }}</h2>
+            <p class="text-muted">{{ _('auth.subtitle') }}</p>
+        </div>
+        
+        <div class="login-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-circle"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-semibold">
+                        <i class="bi bi-envelope"></i> {{ _('auth.email_label') }}
+                    </label>
+                    <input type="email" class="form-control form-control-lg" id="email" name="email"
+                           placeholder="{{ _('auth.email_placeholder') }}" required autofocus>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="password" class="form-label fw-semibold">
+                        <i class="bi bi-lock"></i> {{ _('auth.password_label') }}
+                    </label>
+                    <input type="password" class="form-control form-control-lg" id="password" name="password"
+                           placeholder="{{ _('auth.password_placeholder') }}" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-box-arrow-in-right"></i> {{ _('auth.sign_in') }}
+                </button>
+            </form>
+            
+            <div class="login-info mt-4">
+                <p class="text-muted small mb-2">
+                    <i class="bi bi-info-circle"></i> 
+                    {{ _('auth.demo_info') }}
+                </p>
+                <ul class="text-muted small">
+                    <li><strong>Azure SQL</strong> - {{ _('auth.azure_sql_desc') }}</li>
+                    <li><strong>PostgreSQL</strong> - {{ _('auth.postgres_desc') }}</li>
+                    <li><strong>DocumentDB</strong> - {{ _('auth.docdb_desc') }}</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="login-footer">
+            <small class="text-muted">
+                {{ _('auth.footer') }}
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.sidebar, .top-navbar {
+    display: none !important;
+}
+
+.main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+}
+
+.content-area {
+    padding: 0 !important;
+}
+
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    max-width: 420px;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.lang-selector {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+}
+
+.lang-selector .btn-outline-light {
+    color: #fff;
+    border-color: rgba(255,255,255,0.5);
+    background: rgba(102,126,234,0.7);
+    font-size: 0.8rem;
+}
+
+.lang-selector .btn-outline-light:hover {
+    background: rgba(102,126,234,0.9);
+}
+
+.login-header {
+    text-align: center;
+    padding: 40px 40px 20px;
+}
+
+.login-logo {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: white;
+    font-size: 2.5rem;
+}
+
+.login-header h2 {
+    margin: 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.login-body {
+    padding: 20px 40px;
+}
+
+.login-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.login-info ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.login-footer {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #e5e5e5;
+}
+</style>
+{% endblock %}

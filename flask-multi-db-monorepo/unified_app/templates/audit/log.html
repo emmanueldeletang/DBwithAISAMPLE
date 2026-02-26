@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - Multi-Database Demo{% endblock %}
+{% block page_title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4 class="mb-1"><i class="bi bi-shield-check"></i> Login Audit Log</h4>
+    <p class="text-muted mb-0">
+        <span class="badge db-mongo">DocumentDB</span>
+        {{ stats.total }} total events recorded
+    </p>
+</div>
+
+<!-- ── Statistics Cards ── -->
+<div class="row g-3 mb-4">
+    <!-- Total Logins -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fs-1 fw-bold text-primary">{{ stats.total }}</div>
+                <div class="text-muted">Total Events</div>
+            </div>
+        </div>
+    </div>
+    <!-- Unique Users -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fs-1 fw-bold text-success">{{ stats.by_user|length }}</div>
+                <div class="text-muted">Unique Users</div>
+            </div>
+        </div>
+    </div>
+    <!-- Unique IPs -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fs-1 fw-bold text-warning">{{ stats.by_ip|length }}</div>
+                <div class="text-muted">Unique IPs</div>
+            </div>
+        </div>
+    </div>
+    <!-- Today -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                {% set today_count = 0 %}
+                {% for d in stats.by_day %}
+                    {% if d._id == now_date %}{% set today_count = d.count %}{% endif %}
+                {% endfor %}
+                <div class="fs-1 fw-bold text-info">{{ stats.by_day[0].count if stats.by_day else 0 }}</div>
+                <div class="text-muted">Today</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- ── By Method ── -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-key"></i> By Login Method</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Method</th><th class="text-end">Count</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for m in stats.by_method %}
+                        <tr>
+                            <td>
+                                <a href="?method={{ m._id }}" class="text-decoration-none">
+                                    {% if m._id == 'demo' %}
+                                        <span class="badge bg-secondary">demo</span>
+                                    {% elif m._id == 'microsoft_devmode' %}
+                                        <span class="badge bg-primary">microsoft</span>
+                                    {% elif m._id == 'azure_ad' %}
+                                        <span class="badge bg-info">azure_ad</span>
+                                    {% elif m._id == 'logout' %}
+                                        <span class="badge bg-dark">logout</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ m._id }}</span>
+                                    {% endif %}
+                                </a>
+                            </td>
+                            <td class="text-end fw-semibold">{{ m.count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── By User ── -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-person"></i> By User (Top 15)</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>Email</th><th class="text-end">Count</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for u in stats.by_user %}
+                        <tr>
+                            <td>
+                                <a href="?email={{ u._id }}" class="text-decoration-none" title="{{ u._id }}">
+                                    {{ u._id[:30] }}{% if u._id|length > 30 %}...{% endif %}
+                                </a>
+                            </td>
+                            <td class="text-end fw-semibold">{{ u.count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── By IP ── -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-globe"></i> By IP (Top 15)</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr><th>IP Address</th><th class="text-end">Count</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for ip in stats.by_ip %}
+                        <tr>
+                            <td>
+                                <a href="?ip={{ ip._id }}" class="text-decoration-none">
+                                    <code>{{ ip._id }}</code>
+                                </a>
+                            </td>
+                            <td class="text-end fw-semibold">{{ ip.count }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">No data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Logins Per Day Chart (last 30 days) ── -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-bar-chart"></i> Logins Per Day (Last 30 Days)</div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead class="table-light">
+                <tr><th>Date</th><th>Logins</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for d in stats.by_day %}
+                <tr>
+                    <td class="fw-semibold">{{ d._id }}</td>
+                    <td>{{ d.count }}</td>
+                    <td style="width: 60%;">
+                        <div class="progress" style="height: 18px;">
+                            {% set max_day = stats.by_day|map(attribute='count')|max if stats.by_day else 1 %}
+                            <div class="progress-bar bg-primary" 
+                                 style="width: {{ (d.count / max_day * 100)|int }}%;">
+                                {{ d.count }}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="3" class="text-center text-muted py-3">No data yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Filters ── -->
+{% if filter_email or filter_method or filter_ip %}
+<div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+    <span>
+        <i class="bi bi-funnel"></i> Filtering:
+        {% if filter_email %}<strong>user:</strong> {{ filter_email }} {% endif %}
+        {% if filter_method %}<strong>method:</strong> {{ filter_method }} {% endif %}
+        {% if filter_ip %}<strong>ip:</strong> {{ filter_ip }} {% endif %}
+    </span>
+    <a href="{{ url_for('audit_log') }}" class="btn btn-sm btn-outline-info">
+        <i class="bi bi-x-lg"></i> Clear
+    </a>
+</div>
+{% endif %}
+
+<!-- ── Recent Events Table ── -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul"></i> Recent Events</span>
+        <span class="badge bg-secondary">{{ logs|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Email</th>
+                        <th>Method</th>
+                        <th>IP</th>
+                        <th>User Agent</th>
+                        <th>Success</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="text-nowrap">
+                            <small>{{ log.timestamp[:19] | replace('T',' ') if log.timestamp else 'N/A' }}</small>
+                        </td>
+                        <td>
+                            <a href="?email={{ log.email }}" class="text-decoration-none">
+                                {{ log.email }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if log.method == 'demo' %}
+                                <span class="badge bg-secondary">demo</span>
+                            {% elif log.method == 'microsoft_devmode' %}
+                                <span class="badge bg-primary">microsoft</span>
+                            {% elif log.method == 'azure_ad' %}
+                                <span class="badge bg-info">azure_ad</span>
+                            {% elif log.method == 'logout' %}
+                                <span class="badge bg-dark">logout</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">{{ log.method }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="?ip={{ log.ip }}" class="text-decoration-none">
+                                <code>{{ log.ip }}</code>
+                            </a>
+                        </td>
+                        <td>
+                            <small class="text-muted" title="{{ log.user_agent }}">
+                                {{ log.user_agent[:40] }}{% if log.user_agent|length > 40 %}...{% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {% if log.success %}
+                                <span class="text-success"><i class="bi bi-check-circle-fill"></i></span>
+                            {% else %}
+                                <span class="text-danger"><i class="bi bi-x-circle-fill"></i></span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="bi bi-shield-check" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">No login events recorded yet</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

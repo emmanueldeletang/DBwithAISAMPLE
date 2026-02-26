@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "cosmosdb-activities": {
+      "command": "python",
+      "args": ["mcp_cosmos_server/server.py"],
+      "cwd": "${workspaceFolder}/flask-multi-db-monorepo",
+      "env": {
+        "COSMOS_NOSQL_ENDPOINT": "${env:COSMOS_NOSQL_ENDPOINT}",
+        "COSMOS_NOSQL_KEY": "${env:COSMOS_NOSQL_KEY}",
+        "COSMOS_NOSQL_DATABASE": "${env:COSMOS_NOSQL_DATABASE}",
+        "COSMOS_NOSQL_CONTAINER": "${env:COSMOS_NOSQL_CONTAINER}"
+      }
+    }
+  }
+}

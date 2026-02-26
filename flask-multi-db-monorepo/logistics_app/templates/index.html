@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Logistics{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h1><i class="bi bi-truck"></i> Logistics Dashboard</h1>
+        <p class="lead mb-0">Manage deliveries and partners with MongoDB vCore</p>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <h2 class="text-primary mb-0">{{ partners_count }}</h2>
+                <small class="text-muted">Partners</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <h2 class="text-info mb-0">{{ deliveries_count }}</h2>
+                <small class="text-muted">Total Deliveries</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <h2 class="text-warning mb-0">{{ pending_deliveries }}</h2>
+                <small class="text-muted">Pending</small>
+                {% if pending_deliveries > 0 %}
+                <a href="{{ url_for('dispatch') }}" class="btn btn-warning btn-sm mt-2">
+                    <i class="bi bi-truck"></i> Dispatch Now
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3">
+                <h2 class="text-success mb-0">{{ in_transit }}</h2>
+                <small class="text-muted">In Transit</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Quick Actions -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('dispatch') }}" class="btn btn-warning">
+                            <i class="bi bi-truck"></i> Dispatch Center
+                        </a>
+                        <a href="{{ url_for('ask_question') }}" class="btn btn-info">
+                            <i class="bi bi-chat-dots"></i> Ask AI Questions
+                        </a>
+                        <a href="{{ url_for('create_delivery') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Create Delivery
+                        </a>
+                        <a href="{{ url_for('add_partner') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-building"></i> Add Partner
+                        </a>
+                        <a href="{{ url_for('search') }}" class="btn btn-outline-info">
+                            <i class="bi bi-search"></i> Search Deliveries
+                        </a>
+                        <a href="{{ url_for('track') }}" class="btn btn-outline-success">
+                            <i class="bi bi-geo-alt"></i> Track Package
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Deliveries -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Deliveries</h5>
+                    <a href="{{ url_for('deliveries') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_deliveries %}
+                    <div class="list-group list-group-flush">
+                        {% for delivery in recent_deliveries %}
+                        <a href="{{ url_for('delivery_detail', delivery_id=delivery.delivery_id) }}" 
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <div>
+                                    <strong>{{ delivery.customer_name }}</strong>
+                                    <br><small class="text-muted">{{ delivery.tracking_number }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge status-{{ delivery.status }}">{{ delivery.status }}</span>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-3 mb-0">No deliveries yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Features -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Search Capabilities (MongoDB vCore)</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><i class="bi bi-fonts text-primary"></i> Full-Text Search</h6>
+                    <p class="small text-muted">MongoDB $text search on customer, address, and notes</p>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-vector-pen text-primary"></i> Vector Search</h6>
+                    <p class="small text-muted">Semantic search using cosmosSearch with HNSW/DiskANN</p>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-lightning text-primary"></i> Hybrid Search</h6>
+                    <p class="small text-muted">Combines text + vector with Reciprocal Rank Fusion</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

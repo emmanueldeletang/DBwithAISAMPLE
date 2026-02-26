@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Requête en Langage Naturel - Orders{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-chat-dots me-2"></i>Requête en Langage Naturel</h1>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+</div>
+
+<div class="row">
+    <!-- Query Input -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-magic me-2"></i>Posez votre question</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="nlQueryForm">
+                    <div class="mb-3">
+                        <label for="query" class="form-label">Votre question en français :</label>
+                        <textarea class="form-control" id="query" name="query" rows="3" 
+                                  placeholder="Ex: Quels sont les 10 clients avec le plus de commandes ?"
+                                  required>{{ query or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success" id="submitBtn">
+                        <i class="bi bi-search me-1"></i>Interroger la base
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if result %}
+        <!-- Results -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header {% if result.success %}bg-primary{% else %}bg-danger{% endif %} text-white">
+                <h5 class="mb-0">
+                    {% if result.success %}
+                    <i class="bi bi-check-circle me-2"></i>Résultats ({{ result.row_count }} lignes)
+                    {% else %}
+                    <i class="bi bi-exclamation-triangle me-2"></i>Erreur
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if result.explanation %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>{{ result.explanation }}
+                </div>
+                {% endif %}
+
+                {% if result.sql %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Requête SQL générée :</label>
+                    <pre class="bg-dark text-light p-3 rounded"><code>{{ result.sql }}</code></pre>
+                </div>
+                {% endif %}
+
+                {% if result.error %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle me-2"></i>{{ result.error }}
+                </div>
+                {% endif %}
+
+                {% if result.success and result.results %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                {% for key in result.results[0].keys() %}
+                                <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in result.results %}
+                            <tr>
+                                {% for value in row.values() %}
+                                <td>
+                                    {% if value is none %}
+                                    <span class="text-muted">-</span>
+                                    {% elif value is number %}
+                                    {% if value >= 1000 %}
+                                    {{ "{:,.2f}".format(value) }}
+                                    {% else %}
+                                    {{ value }}
+                                    {% endif %}
+                                    {% else %}
+                                    {{ value }}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if result.row_count > 0 %}
+                <div class="mt-3 text-muted">
+                    <small><i class="bi bi-info-circle me-1"></i>{{ result.row_count }} résultats affichés</small>
+                </div>
+                {% endif %}
+                
+                {% elif result.success and result.row_count == 0 %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-inbox me-2"></i>Aucun résultat trouvé pour cette requête.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Examples Sidebar -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Exemples de questions</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Cliquez sur un exemple pour l'essayer :</p>
+                <div class="list-group list-group-flush">
+                    {% for example in examples %}
+                    <a href="#" class="list-group-item list-group-item-action example-query" 
+                       data-query="{{ example }}">
+                        <i class="bi bi-chat-right-text me-2 text-success"></i>{{ example }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Comment ça marche ?</h5>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li class="mb-2">Vous posez une question en français</li>
+                    <li class="mb-2">L'IA (Azure OpenAI) analyse votre question</li>
+                    <li class="mb-2">Elle génère une requête SQL adaptée</li>
+                    <li class="mb-2">La requête est exécutée sur PostgreSQL</li>
+                    <li>Les résultats vous sont présentés</li>
+                </ol>
+                <hr>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-shield-check me-1"></i>
+                    Seules les requêtes de lecture (SELECT) sont autorisées pour la sécurité.
+                </p>
+            </div>
+        </div>
+
+        <!-- Database Schema Info -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-database me-2"></i>Tables disponibles</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <strong><i class="bi bi-people me-1"></i>customers</strong>
+                        <br><small class="text-muted">Clients (nom, email, ville...)</small>
+                    </li>
+                    <li class="mb-2">
+                        <strong><i class="bi bi-cart me-1"></i>orders</strong>
+                        <br><small class="text-muted">Commandes (statut, montant, date...)</small>
+                    </li>
+                    <li>
+                        <strong><i class="bi bi-box me-1"></i>order_items</strong>
+                        <br><small class="text-muted">Lignes de commande (produit, quantité...)</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Example query click handlers
+    document.querySelectorAll('.example-query').forEach(function(el) {
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('query').value = this.dataset.query;
+            document.getElementById('query').focus();
+        });
+    });
+
+    // Form submit loading state
+    document.getElementById('nlQueryForm').addEventListener('submit', function() {
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Analyse en cours...';
+    });
+});
+</script>
+{% endblock %}

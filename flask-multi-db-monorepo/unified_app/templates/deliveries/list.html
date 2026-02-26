@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Deliveries - Multi-Database Demo{% endblock %}
+{% block page_title %}Delivery Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">Active Deliveries</h4>
+        <p class="text-muted mb-0">
+            <span class="badge db-mongo">DocumentDB</span>
+            {{ deliveries|length }} deliveries with partners assigned
+        </p>
+    </div>
+    <div>
+        <a href="{{ url_for('dispatch') }}" class="btn btn-warning position-relative">
+            <i class="bi bi-send"></i> Dispatch Center
+            {% if unassigned_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ unassigned_count }}
+            </span>
+            {% endif %}
+        </a>
+        <a href="{{ url_for('track') }}" class="btn btn-outline-primary">
+            <i class="bi bi-geo-alt"></i> Track Package
+        </a>
+    </div>
+</div>
+
+<!-- Status Filter -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('deliveries') }}" class="btn btn-sm {{ 'btn-primary' if not status_filter else 'btn-outline-secondary' }}">
+                All
+            </a>
+            {% for status in ['pending', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed'] %}
+            <a href="{{ url_for('deliveries') }}?status={{ status }}" 
+               class="btn btn-sm {{ 'btn-primary' if status_filter == status else 'btn-outline-secondary' }}">
+                {{ status|replace('_', ' ')|title }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tracking</th>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Partner</th>
+                        <th>Status</th>
+                        <th>Destination</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for delivery in deliveries %}
+                    <tr>
+                        <td>
+                            <code>{{ delivery.tracking_number or delivery._id[:12] }}...</code>
+                        </td>
+                        <td>
+                            {% if delivery.order_id %}
+                            <a href="{{ url_for('order_detail', order_id=delivery.order_id) }}">
+                                {{ delivery.order_id[:8] }}...
+                            </a>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ delivery.customer_name or 'N/A' }}</td>
+                        <td>
+                            {% if delivery.partner_name %}
+                            <a href="{{ url_for('partner_detail', partner_id=delivery.partner_id) }}">
+                                {{ delivery.partner_name }}
+                            </a>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge status-{{ delivery.status|lower|replace(' ', '_') }}">
+                                {{ delivery.status|replace('_', ' ')|title | translate }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if delivery.address %}
+                                {{ (delivery.address.city if delivery.address is mapping else delivery.address) | translate }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('delivery_detail', delivery_id=delivery.delivery_id or delivery._id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-truck" style="font-size: 2rem;"></i>
+                            <p class="mb-0 mt-2">No deliveries found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

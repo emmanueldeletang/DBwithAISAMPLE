@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('nav.dashboard') }} - Multi-Database Demo{% endblock %}
+{% block page_title %}{{ _('nav.dashboard') }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-1">{{ _('dashboard.welcome') }}, {{ current_user.name or 'Demo User' }}!</h4>
+        <p class="text-muted">{{ _('dashboard.overview') }}</p>
+    </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stat-card azure">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">{{ stats.products }}</div>
+                    <div>{{ _('nav.products') }}</div>
+                </div>
+                <i class="bi bi-box-seam" style="font-size: 2rem; opacity: 0.5;"></i>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.2);">
+            <small><i class="bi bi-database"></i> Azure SQL Server</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stat-card postgres">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">{{ stats.orders }}</div>
+                    <div>{{ _('nav.orders') }}</div>
+                </div>
+                <i class="bi bi-cart3" style="font-size: 2rem; opacity: 0.5;"></i>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.2);">
+            <small><i class="bi bi-database"></i> PostgreSQL</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stat-card postgres">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">{{ stats.customers }}</div>
+                    <div>{{ _('nav.customers') }}</div>
+                </div>
+                <i class="bi bi-people" style="font-size: 2rem; opacity: 0.5;"></i>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.2);">
+            <small><i class="bi bi-database"></i> PostgreSQL</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stat-card mongo">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">{{ stats.deliveries }}</div>
+                    <div>{{ _('nav.deliveries') }}</div>
+                </div>
+                <i class="bi bi-truck" style="font-size: 2rem; opacity: 0.5;"></i>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.2);">
+            <small><i class="bi bi-database"></i> DocumentDB</small>
+        </div>
+    </div>
+</div>
+
+<!-- Second Row - Additional Stats -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="stat-card warning">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-value">{{ stats.pending_deliveries }}</div>
+                    <div>{{ _('dashboard.pending_dispatch') }}</div>
+                </div>
+                <i class="bi bi-clock-history" style="font-size: 2rem; opacity: 0.5;"></i>
+            </div>
+            <a href="{{ url_for('dispatch') }}" class="btn btn-light btn-sm mt-3">
+                <i class="bi bi-arrow-right"></i> {{ _('dashboard.go_dispatch') }}
+            </a>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title text-muted">
+                    <i class="bi bi-building"></i> {{ _('dashboard.active_partners') }}
+                </h6>
+                <div class="stat-value text-primary">{{ stats.partners }}</div>
+                <a href="{{ url_for('partners') }}" class="btn btn-outline-primary btn-sm mt-2">
+                    {{ _('dashboard.view_partners') }}
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title text-muted">
+                    <i class="bi bi-chat-dots"></i> {{ _('dashboard.ai_assistant') }}
+                </h6>
+                <p class="small text-muted">{{ _('dashboard.ai_description') }}</p>
+                <a href="{{ url_for('ask_question') }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-chat-dots"></i> {{ _('dashboard.ask_ai') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Architecture Overview -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-diagram-3"></i> {{ _('dashboard.architecture') }}
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="p-4 rounded" style="background: linear-gradient(135deg, rgba(0,120,212,0.1), rgba(0,188,242,0.1)); border: 2px solid #0078d4;">
+                            <i class="bi bi-database" style="font-size: 3rem; color: #0078d4;"></i>
+                            <h5 class="mt-3">Azure SQL</h5>
+                            <p class="text-muted small mb-0">{{ _('dashboard.product_catalog') }}</p>
+                            <span class="badge bg-primary">Vector Search</span>
+                            <span class="badge bg-secondary">1536-dim embeddings</span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="p-4 rounded" style="background: linear-gradient(135deg, rgba(51,103,145,0.1), rgba(90,159,212,0.1)); border: 2px solid #336791;">
+                            <i class="bi bi-database" style="font-size: 3rem; color: #336791;"></i>
+                            <h5 class="mt-3">PostgreSQL</h5>
+                            <p class="text-muted small mb-0">{{ _('dashboard.orders_customers') }}</p>
+                            <span class="badge bg-info">azure_ai</span>
+                            <span class="badge bg-secondary">pgvector</span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="p-4 rounded" style="background: linear-gradient(135deg, rgba(0,104,74,0.1), rgba(19,170,82,0.1)); border: 2px solid #00684A;">
+                            <i class="bi bi-database" style="font-size: 3rem; color: #00684A;"></i>
+                            <h5 class="mt-3">DocumentDB</h5>
+                            <p class="text-muted small mb-0">{{ _('dashboard.logistics_deliveries') }}</p>
+                            <span class="badge bg-success">DocumentDB API</span>
+                            <span class="badge bg-secondary">Aggregations</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                        <div class="p-4 rounded" style="background: linear-gradient(135deg, rgba(0,78,137,0.1), rgba(0,164,239,0.1)); border: 2px solid #004e89;">
+                            <i class="bi bi-globe2" style="font-size: 3rem; color: #004e89;"></i>
+                            <h5 class="mt-3">Cosmos DB NoSQL</h5>
+                            <p class="text-muted small mb-0">{{ _('dashboard.activity_tracking') }}</p>
+                            <span class="badge" style="background-color: #004e89;">NoSQL API</span>
+                            <span class="badge bg-secondary">Partition Key</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lightning"></i> {{ _('dashboard.quick_actions') }}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('add_product') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-plus-circle"></i> {{ _('dashboard.add_product') }}
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('create_order') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-cart-plus"></i> {{ _('dashboard.new_order') }}
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('dispatch') }}" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-send"></i> {{ _('dashboard.dispatch_center') }}
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('search_products') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-search"></i> {{ _('dashboard.vector_search') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

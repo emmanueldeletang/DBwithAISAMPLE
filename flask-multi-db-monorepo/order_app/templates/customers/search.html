@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Search Customers{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1><i class="bi bi-search"></i> Customer Search</h1>
+    <p class="text-muted">Search using trigram similarity, vector search, or hybrid</p>
+
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="q" 
+                                   value="{{ query }}" placeholder="Search by name or email..." autofocus>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Search</button>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label">Search Type:</label>
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="type" id="type-trigram" value="trigram"
+                               {% if search_type == 'trigram' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="type-trigram">
+                            <i class="bi bi-fonts"></i> Trigram
+                        </label>
+
+                        <input type="radio" class="btn-check" name="type" id="type-vector" value="vector"
+                               {% if search_type == 'vector' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="type-vector">
+                            <i class="bi bi-vector-pen"></i> Vector
+                        </label>
+
+                        <input type="radio" class="btn-check" name="type" id="type-hybrid" value="hybrid"
+                               {% if search_type == 'hybrid' or not search_type %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="type-hybrid">
+                            <i class="bi bi-lightning"></i> Hybrid
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Search Method Info -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 {% if search_type == 'trigram' %}border-primary{% endif %}">
+                <div class="card-body">
+                    <h6><i class="bi bi-fonts text-primary"></i> Trigram (pg_trgm)</h6>
+                    <small class="text-muted">Fuzzy text matching based on character n-grams</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 {% if search_type == 'vector' %}border-primary{% endif %}">
+                <div class="card-body">
+                    <h6><i class="bi bi-vector-pen text-primary"></i> Vector (pgvector)</h6>
+                    <small class="text-muted">Semantic similarity using embeddings with cosine distance</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 {% if search_type == 'hybrid' or not search_type %}border-primary{% endif %}">
+                <div class="card-body">
+                    <h6><i class="bi bi-lightning text-primary"></i> Hybrid (RRF)</h6>
+                    <small class="text-muted">Combines trigram + vector using Reciprocal Rank Fusion</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    {% if search_info %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4>Results for "{{ search_info.query }}"</h4>
+            <small class="text-muted">{{ search_info.count }} results using {{ search_info.method }}</small>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if results %}
+    <div class="list-group">
+        {% for customer in results %}
+        <a href="{{ url_for('customer_detail', customer_id=customer.customer_id) }}" 
+           class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <div>
+                    <h5 class="mb-1">{{ customer.first_name }} {{ customer.last_name }}</h5>
+                    <p class="mb-1 text-muted">{{ customer.email }}</p>
+                    <small>
+                        {% if customer.city %}{{ customer.city }}{% endif %}
+                        {% if customer.country %}, {{ customer.country }}{% endif %}
+                    </small>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">
+                        Score: {{ "%.4f"|format(customer.search_score) }}
+                    </small>
+                    <br>
+                    <span class="badge bg-info">{{ customer.search_type }}</span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No customers found for "{{ query }}".
+    </div>
+    {% else %}
+    <div class="alert alert-secondary">
+        <i class="bi bi-lightbulb"></i> Enter a name or email to search. Try partial matches like "jean" or "gmail".
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}AI Query - Multi-Database Demo{% endblock %}
+{% block page_title %}Natural Language Query{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-chat-dots"></i> Ask a Question</span>
+                <div class="btn-group" role="group" aria-label="Database selector">
+                    <input type="radio" class="btn-check" name="dbSelector" id="dbPostgres" value="postgres" 
+                           {{ 'checked' if database == 'postgres' or database not in ['mongodb', 'azuresql', 'cosmosdb'] else '' }} autocomplete="off">
+                    <label class="btn btn-outline-primary btn-sm" for="dbPostgres">
+                        <i class="bi bi-database"></i> PostgreSQL
+                    </label>
+                    <input type="radio" class="btn-check" name="dbSelector" id="dbMongodb" value="mongodb"
+                           {{ 'checked' if database == 'mongodb' else '' }} autocomplete="off">
+                    <label class="btn btn-outline-success btn-sm" for="dbMongodb">
+                        <i class="bi bi-leaf"></i> DocumentDB
+                    </label>
+                    <input type="radio" class="btn-check" name="dbSelector" id="dbAzuresql" value="azuresql"
+                           {{ 'checked' if database == 'azuresql' else '' }} autocomplete="off">
+                    <label class="btn btn-outline-info btn-sm" for="dbAzuresql">
+                        <i class="bi bi-cloud"></i> Azure SQL
+                    </label>
+                    <input type="radio" class="btn-check" name="dbSelector" id="dbCosmosdb" value="cosmosdb"
+                           {{ 'checked' if database == 'cosmosdb' else '' }} autocomplete="off">
+                    <label class="btn btn-outline-warning btn-sm" for="dbCosmosdb">
+                        <i class="bi bi-activity"></i> Cosmos NoSQL
+                    </label>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('ask_question') }}" id="askForm">
+                    <input type="hidden" name="database" id="databaseInput" value="{{ database or 'postgres' }}">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">
+                            <span id="dbLabel">
+                                {% if database == 'mongodb' %}
+                                    Querying <span class="badge bg-success">DocumentDB</span> (Deliveries, Partners)
+                                {% elif database == 'azuresql' %}
+                                    Querying <span class="badge bg-info">Azure SQL</span> (Products Catalog)
+                                {% elif database == 'cosmosdb' %}
+                                    Querying <span class="badge bg-warning text-dark">Cosmos DB NoSQL</span> (User Activities)
+                                {% else %}
+                                    Querying <span class="badge bg-primary">PostgreSQL</span> (Orders, Customers)
+                                {% endif %}
+                            </span>
+                        </label>
+                        <textarea name="question" class="form-control" rows="3" 
+                                  placeholder="Ask a question about your data in natural language..."
+                                  id="questionInput">{{ question or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="askBtn">
+                        <i class="bi bi-send"></i> Ask
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        {% if result and result.success %}
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-check-circle"></i> Results 
+                <span class="badge bg-light text-dark ms-2">
+                    {% if result.row_count is defined %}
+                        {{ result.row_count }} rows
+                    {% elif result.count is defined %}
+                        {{ result.count }} documents
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                {% if result.explanation %}
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle"></i> {{ result.explanation | translate }}
+                </div>
+                {% endif %}
+                
+                {% if result.description %}
+                <div class="alert alert-info mb-3">
+                    <i class="bi bi-info-circle"></i> {{ result.description | translate }}
+                </div>
+                {% endif %}
+                
+                {% if result.results or result.rows %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                {% set data = result.results if result.results else result.rows %}
+                                {% if data and data|length > 0 %}
+                                    {% for key in data[0].keys() %}
+                                        {% if key != '_id' %}
+                                        <th>{{ key }}</th>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data[:50] %}
+                            <tr>
+                                {% for key, value in row.items() %}
+                                    {% if key != '_id' %}
+                                    <td>
+                                        {% if value is mapping %}
+                                            <code>{{ value|tojson }}</code>
+                                        {% elif value is iterable and value is not string %}
+                                            {{ value|join(', ') }}
+                                        {% else %}
+                                            {{ value }}
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if data|length > 50 %}
+                <p class="text-muted small">Showing first 50 of {{ data|length }} results</p>
+                {% endif %}
+                {% endif %}
+                
+                <hr>
+                <details>
+                    <summary class="text-muted small">View Generated Query</summary>
+                    <pre class="bg-dark text-light p-3 mt-2 rounded"><code>{% if result.sql %}{{ result.sql }}{% elif result.generated_query %}{{ result.generated_query|tojson(indent=2) }}{% endif %}</code></pre>
+                </details>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if error %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-4">
+        <!-- PostgreSQL Suggestions -->
+        <div class="card mb-3" id="postgresSuggestions" style="{{ 'display:none' if database in ['mongodb', 'azuresql', 'cosmosdb'] else '' }}">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-database"></i> PostgreSQL Examples
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">Orders, Customers, Order Items</p>
+                <ul class="list-unstyled mb-0">
+                    {% for q in postgres_suggestions[:6] %}
+                    <li class="mb-2">
+                        <a href="#" class="suggestion-link text-decoration-none" data-db="postgres">
+                            <i class="bi bi-chat-left-text text-primary"></i> {{ q }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- DocumentDB Suggestions -->
+        <div class="card mb-3" id="mongoSuggestions" style="{{ '' if database == 'mongodb' else 'display:none' }}">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-leaf"></i> DocumentDB Examples
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">Deliveries, Partners</p>
+                <ul class="list-unstyled mb-0">
+                    {% for q in mongo_suggestions[:6] %}
+                    <li class="mb-2">
+                        <a href="#" class="suggestion-link text-decoration-none" data-db="mongodb">
+                            <i class="bi bi-chat-left-text text-success"></i> {{ q }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Azure SQL Suggestions -->
+        <div class="card mb-3" id="azuresqlSuggestions" style="{{ '' if database == 'azuresql' else 'display:none' }}">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-cloud"></i> Azure SQL Examples
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">Products Catalog</p>
+                <ul class="list-unstyled mb-0">
+                    {% for q in azuresql_suggestions[:6] %}
+                    <li class="mb-2">
+                        <a href="#" class="suggestion-link text-decoration-none" data-db="azuresql">
+                            <i class="bi bi-chat-left-text text-info"></i> {{ q }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Cosmos DB NoSQL Suggestions -->
+        <div class="card mb-3" id="cosmosSuggestions" style="{{ '' if database == 'cosmosdb' else 'display:none' }}">
+            <div class="card-header bg-warning text-dark">
+                <i class="bi bi-activity"></i> Cosmos DB NoSQL Examples
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-2">User Activity Tracking</p>
+                <ul class="list-unstyled mb-0">
+                    {% for q in cosmos_suggestions[:6] %}
+                    <li class="mb-2">
+                        <a href="#" class="suggestion-link text-decoration-none" data-db="cosmosdb">
+                            <i class="bi bi-chat-left-text text-warning"></i> {{ q }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> How It Works
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-start mb-3">
+                    <span class="badge bg-primary me-2">1</span>
+                    <span class="small">Choose your database (PostgreSQL, DocumentDB, Azure SQL, or Cosmos DB NoSQL)</span>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <span class="badge bg-primary me-2">2</span>
+                    <span class="small">Your question is sent to Azure OpenAI (GPT-4o)</span>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <span class="badge bg-primary me-2">3</span>
+                    <span class="small">AI generates SQL, DocumentDB, or Cosmos SQL query</span>
+                </div>
+                <div class="d-flex align-items-start">
+                    <span class="badge bg-primary me-2">4</span>
+                    <span class="small">Query executes safely and results display</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-diagram-3"></i> Database Schema
+            </div>
+            <div class="card-body small">
+                <div id="postgresSchema" style="{{ 'display:none' if database in ['mongodb', 'azuresql', 'cosmosdb'] else '' }}">
+                    <strong class="text-primary">PostgreSQL Tables:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li><code>customers</code> - Customer information</li>
+                        <li><code>orders</code> - Order records</li>
+                        <li><code>order_items</code> - Products in orders</li>
+                    </ul>
+                </div>
+                <div id="mongoSchema" style="{{ '' if database == 'mongodb' else 'display:none' }}">
+                    <strong class="text-success">DocumentDB Collections:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li><code>deliveries</code> - Delivery tracking</li>
+                        <li><code>partners</code> - Delivery partners</li>
+                    </ul>
+                </div>
+                <div id="azuresqlSchema" style="{{ '' if database == 'azuresql' else 'display:none' }}">
+                    <strong class="text-info">Azure SQL Tables:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li><code>products</code> - Product catalog with vector search</li>
+                    </ul>
+                </div>
+                <div id="cosmosSchema" style="{{ '' if database == 'cosmosdb' else 'display:none' }}">
+                    <strong class="text-warning">Cosmos DB NoSQL Container:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li><code>daily_activities</code> - User activity tracking (one doc/user/day)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dbPostgres = document.getElementById('dbPostgres');
+    const dbMongodb = document.getElementById('dbMongodb');
+    const dbAzuresql = document.getElementById('dbAzuresql');
+    const dbCosmosdb = document.getElementById('dbCosmosdb');
+    const databaseInput = document.getElementById('databaseInput');
+    const dbLabel = document.getElementById('dbLabel');
+    const postgresSuggestions = document.getElementById('postgresSuggestions');
+    const mongoSuggestions = document.getElementById('mongoSuggestions');
+    const azuresqlSuggestions = document.getElementById('azuresqlSuggestions');
+    const cosmosSuggestions = document.getElementById('cosmosSuggestions');
+    const postgresSchema = document.getElementById('postgresSchema');
+    const mongoSchema = document.getElementById('mongoSchema');
+    const azuresqlSchema = document.getElementById('azuresqlSchema');
+    const cosmosSchema = document.getElementById('cosmosSchema');
+    
+    function updateUI(db) {
+        databaseInput.value = db;
+        
+        // Hide all suggestions and schemas first
+        postgresSuggestions.style.display = 'none';
+        mongoSuggestions.style.display = 'none';
+        azuresqlSuggestions.style.display = 'none';
+        cosmosSuggestions.style.display = 'none';
+        postgresSchema.style.display = 'none';
+        mongoSchema.style.display = 'none';
+        azuresqlSchema.style.display = 'none';
+        cosmosSchema.style.display = 'none';
+        
+        if (db === 'mongodb') {
+            dbLabel.innerHTML = 'Querying <span class="badge bg-success">DocumentDB</span> (Deliveries, Partners)';
+            mongoSuggestions.style.display = 'block';
+            mongoSchema.style.display = 'block';
+        } else if (db === 'azuresql') {
+            dbLabel.innerHTML = 'Querying <span class="badge bg-info">Azure SQL</span> (Products Catalog)';
+            azuresqlSuggestions.style.display = 'block';
+            azuresqlSchema.style.display = 'block';
+        } else if (db === 'cosmosdb') {
+            dbLabel.innerHTML = 'Querying <span class="badge bg-warning text-dark">Cosmos DB NoSQL</span> (User Activities)';
+            cosmosSuggestions.style.display = 'block';
+            cosmosSchema.style.display = 'block';
+        } else {
+            dbLabel.innerHTML = 'Querying <span class="badge bg-primary">PostgreSQL</span> (Orders, Customers)';
+            postgresSuggestions.style.display = 'block';
+            postgresSchema.style.display = 'block';
+        }
+    }
+    
+    dbPostgres.addEventListener('change', function() {
+        if (this.checked) updateUI('postgres');
+    });
+    
+    dbMongodb.addEventListener('change', function() {
+        if (this.checked) updateUI('mongodb');
+    });
+    
+    dbAzuresql.addEventListener('change', function() {
+        if (this.checked) updateUI('azuresql');
+    });
+
+    dbCosmosdb.addEventListener('change', function() {
+        if (this.checked) updateUI('cosmosdb');
+    });
+    
+    // Suggestion links
+    document.querySelectorAll('.suggestion-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const question = this.textContent.trim();
+            const db = this.dataset.db;
+            
+            document.getElementById('questionInput').value = question;
+            databaseInput.value = db;
+            
+            if (db === 'mongodb') {
+                dbMongodb.checked = true;
+                updateUI('mongodb');
+            } else if (db === 'azuresql') {
+                dbAzuresql.checked = true;
+                updateUI('azuresql');
+            } else if (db === 'cosmosdb') {
+                dbCosmosdb.checked = true;
+                updateUI('cosmosdb');
+            } else {
+                dbPostgres.checked = true;
+                updateUI('postgres');
+            }
+            
+            document.getElementById('askForm').submit();
+        });
+    });
+});
+</script>
+{% endblock %}

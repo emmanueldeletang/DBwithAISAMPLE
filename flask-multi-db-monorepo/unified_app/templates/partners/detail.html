@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}{{ partner.name }} - Multi-Database Demo{% endblock %}
+{% block page_title %}Partner Details{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <a href="{{ url_for('partners') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> Back to Partners
+    </a>
+    <a href="{{ url_for('edit_partner', partner_id=partner.partner_id or partner._id) }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-pencil"></i> Edit Partner
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-building"></i> Partner Profile</span>
+                <span class="badge db-mongo">DocumentDB</span>
+            </div>
+            <div class="card-body text-center">
+                <div class="user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem; background: linear-gradient(135deg, #00684A, #13AA52);">
+                    {{ partner.name[0] }}
+                </div>
+                <h5>{{ partner.name }}</h5>
+                <p class="text-muted">{{ (partner.type or 'Delivery Partner') | translate }}</p>
+                
+                <hr>
+                
+                <div class="text-start">
+                    {% if partner.email %}
+                    <div class="mb-2">
+                        <i class="bi bi-envelope text-muted"></i>
+                        <span>{{ partner.email }}</span>
+                    </div>
+                    {% endif %}
+                    {% if partner.phone %}
+                    <div class="mb-2">
+                        <i class="bi bi-phone text-muted"></i>
+                        <span>{{ partner.phone }}</span>
+                    </div>
+                    {% endif %}
+                    {% if partner.region %}
+                    <div class="mb-2">
+                        <i class="bi bi-geo-alt text-muted"></i>
+                        <span>{{ partner.region | translate }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-bar-chart"></i> Performance
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Total Deliveries</span>
+                    <strong>{{ stats.total or 0 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Completed</span>
+                    <strong class="text-success">{{ stats.completed or 0 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">In Progress</span>
+                    <strong class="text-primary">{{ stats.in_progress or 0 }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">Failed</span>
+                    <strong class="text-danger">{{ stats.failed or 0 }}</strong>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="text-muted">Success Rate</span>
+                    <strong class="text-success">
+                        {% if stats.total and stats.total > 0 %}
+                        {{ "%.1f"|format((stats.completed / stats.total) * 100) }}%
+                        {% else %}
+                        N/A
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-truck"></i> Assigned Deliveries</span>
+                <span class="badge bg-primary">{{ deliveries|length }} total</span>
+            </div>
+            <div class="card-body p-0">
+                <!-- Quick filters -->
+                <div class="p-3 bg-light border-bottom">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">All</button>
+                        <button type="button" class="btn btn-outline-warning filter-btn" data-filter="pending,picked_up">To Do</button>
+                        <button type="button" class="btn btn-outline-primary filter-btn" data-filter="in_transit,out_for_delivery">In Progress</button>
+                        <button type="button" class="btn btn-outline-success filter-btn" data-filter="delivered">Delivered</button>
+                        <button type="button" class="btn btn-outline-danger filter-btn" data-filter="failed">Failed</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tracking</th>
+                                <th>Customer</th>
+                                <th>Destination</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deliveriesTable">
+                            {% for delivery in deliveries %}
+                            <tr data-status="{{ delivery.status }}">
+                                <td><code>{{ delivery.tracking_number or delivery.delivery_id }}</code></td>
+                                <td>{{ delivery.customer_name or 'N/A' }}</td>
+                                <td>
+                                    {% if delivery.address %}
+                                        {{ (delivery.address.city if delivery.address is mapping else delivery.address) | translate }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge status-{{ delivery.status|lower|replace(' ', '_') }}">
+                                        {{ delivery.status|replace('_', ' ')|title | translate }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('delivery_detail', delivery_id=delivery.delivery_id or delivery._id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    No deliveries assigned to this partner
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        const filter = this.dataset.filter;
+        const rows = document.querySelectorAll('#deliveriesTable tr[data-status]');
+        
+        rows.forEach(row => {
+            if (filter === 'all') {
+                row.style.display = '';
+            } else {
+                const statuses = filter.split(',');
+                row.style.display = statuses.includes(row.dataset.status) ? '' : 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

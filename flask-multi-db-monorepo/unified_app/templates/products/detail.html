@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name | translate }} - Multi-Database Demo{% endblock %}
+{% block page_title %}Product Details{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('products') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> Back to Products
+    </a>
+</div>
+
+<div class="row">
+    <!-- Product Image -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-image"></i> Product Image
+            </div>
+            {% if product.image_url %}
+            <img src="{{ url_for('api_product_image', sku=product.sku) }}" class="card-img-bottom" alt="{{ product.name }}" 
+                 style="max-height: 400px; object-fit: cover;">
+            {% else %}
+            <div class="card-body bg-light d-flex align-items-center justify-content-center" 
+                 style="height: 300px;">
+                <div class="text-center text-muted">
+                    <i class="bi bi-box-seam" style="font-size: 4rem;"></i>
+                    <p class="mt-2 mb-0">No image available</p>
+                    <button class="btn btn-sm btn-outline-primary mt-2" id="btn-generate-image" onclick="generateImage('{{ product.sku }}')">
+                        <i class="bi bi-stars"></i> Generate with AI
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Product Details -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-box-seam"></i> {{ product.name | translate }}</span>
+                <span class="badge db-azure">Azure SQL</span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="text-muted small">SKU</label>
+                        <p class="mb-2"><code>{{ product.sku }}</code></p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Category</label>
+                        <p class="mb-2"><span class="badge bg-secondary">{{ product.category | translate }}</span></p>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="text-muted small">Description</label>
+                    <p>{{ product.description | translate }}</p>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="text-muted small">Price</label>
+                        <p class="h4 text-success">${{ "%.2f"|format(product.price|float) }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small">Stock Quantity</label>
+                        <p class="h4">
+                            {% if product.stock is not none and product.stock < 10 %}
+                            <span class="text-danger">{{ product.stock }}</span>
+                            {% elif product.stock is not none and product.stock < 50 %}
+                            <span class="text-warning">{{ product.stock }}</span>
+                            {% else %}
+                            <span class="text-success">{{ product.stock or 0 }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small">Vector Embedding</label>
+                        <p>
+                            {% if product.description_embedding %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle"></i> 1536-dim</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Not generated</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="text-muted small">Created At</label>
+                        <p>{{ product.created_at }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small">Updated At</label>
+                        <p>{{ product.updated_at or 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('edit_product', product_id=product.sku) }}" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> Edit Product
+                </a>
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Vector Search Info
+            </div>
+            <div class="card-body">
+                {% if product.description_embedding %}
+                <p class="small text-muted">
+                    This product has a vector embedding generated from its description using OpenAI's 
+                    <code>text-embedding-3-large</code> model (1536 dimensions).
+                </p>
+                <p class="small text-muted mb-0">
+                    Vector search uses <code>VECTOR_DISTANCE</code> with cosine similarity to find 
+                    semantically similar products.
+                </p>
+                {% else %}
+                <p class="small text-muted mb-0">
+                    No vector embedding has been generated for this product. Add or update the 
+                    description to generate embeddings automatically.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-link-45deg"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('search_products') }}?q={{ product.name }}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="bi bi-search"></i> Find Similar Products
+                </a>
+                <a href="{{ url_for('create_order') }}" class="btn btn-outline-success w-100">
+                    <i class="bi bi-cart-plus"></i> Create Order with Product
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ product.name }}</strong>?</p>
+                <p class="text-danger small mb-0">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_product', product_id=product.sku) }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete Product</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function generateImage(sku) {
+    const btn = document.getElementById('btn-generate-image');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Generating...';
+    
+    fetch('/api/products/' + sku + '/generate-image', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-stars"></i> Generate with AI';
+            }
+        })
+        .catch(err => {
+            alert('Error generating image: ' + err);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-stars"></i> Generate with AI';
+        });
+}
+</script>
+{% endblock %}

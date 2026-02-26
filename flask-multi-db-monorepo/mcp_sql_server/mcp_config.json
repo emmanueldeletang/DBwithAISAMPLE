@@ -1,0 +1,37 @@
+{
+  "server": {
+    "name": "azuresql-products-mcp",
+    "version": "1.0.0",
+    "description": "MCP server for Azure SQL Products database"
+  },
+  "run": {
+    "command": "python",
+    "args": ["server.py"]
+  },
+  "tools": [
+    {
+      "name": "get_database_schema",
+      "description": "Get the schema of the Azure SQL products database"
+    },
+    {
+      "name": "execute_query",
+      "description": "Execute SELECT queries on the products database"
+    },
+    {
+      "name": "get_table_sample",
+      "description": "Get sample rows from the products table"
+    },
+    {
+      "name": "get_statistics",
+      "description": "Get statistics about products"
+    },
+    {
+      "name": "search_products",
+      "description": "Search products by various criteria"
+    },
+    {
+      "name": "get_low_stock_products",
+      "description": "Find products with low stock"
+    }
+  ]
+}

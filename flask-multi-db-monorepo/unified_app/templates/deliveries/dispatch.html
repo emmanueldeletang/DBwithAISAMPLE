@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Dispatch Center - Multi-Database Demo{% endblock %}
+{% block page_title %}Dispatch Center{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1">Dispatch Center</h4>
+        <p class="text-muted mb-0">
+            <span class="badge db-mongo">DocumentDB</span>
+            Assign partners to deliveries without a partner
+        </p>
+    </div>
+    <a href="{{ url_for('deliveries') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-list"></i> All Deliveries
+    </a>
+</div>
+
+{% if pending_deliveries %}
+<div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>{{ pending_deliveries|length }}</strong> deliveries waiting for partner assignment
+</div>
+
+<div class="row">
+    {% for delivery in pending_deliveries %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="badge {% if delivery.status == 'pending' %}status-pending{% elif delivery.status == 'picked_up' %}bg-info{% else %}bg-secondary{% endif %}">
+                    {{ delivery.status|default('pending')|title | translate }}
+                </span>
+                <small class="text-muted">{{ delivery.tracking_number or delivery.delivery_id }}</small>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">{{ delivery.customer_name or 'Customer' }}</h6>
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block">
+                        <i class="bi bi-geo-alt"></i> 
+                        {% if delivery.address %}
+                            {{ (delivery.address.city if delivery.address is mapping else delivery.address) | translate }}
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </small>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-cart3"></i> Order: {{ delivery.order_id[:8] if delivery.order_id else 'N/A' }}...
+                    </small>
+                    {% if delivery.notes %}
+                    <small class="text-muted d-block">
+                        <i class="bi bi-sticky"></i> {{ delivery.notes | translate }}
+                    </small>
+                    {% endif %}
+                </div>
+                
+                <form action="{{ url_for('dispatch_delivery', delivery_id=delivery.delivery_id or delivery._id) }}" method="POST">
+                    <div class="mb-2">
+                        <select name="partner_id" class="form-select form-select-sm" required>
+                            <option value="">Select partner...</option>
+                            {% for partner in partners %}
+                            <option value="{{ partner.partner_id or partner._id }}">{{ partner.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100">
+                        <i class="bi bi-send"></i> Dispatch
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+        <h4 class="mt-3">All Caught Up!</h4>
+        <p class="text-muted">No deliveries waiting for partner assignment.</p>
+        <a href="{{ url_for('deliveries') }}" class="btn btn-primary">View All Deliveries</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

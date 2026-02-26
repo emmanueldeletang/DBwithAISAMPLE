@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('customer_form.edit_title') if customer else _('customer_form.add_title') }} - Multi-Database Demo{% endblock %}
+{% block page_title %}{{ _('customer_form.edit_title') if customer else _('customer_form.add_title') }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('customers') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> {{ _('customer_form.back') }}
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>
+                    <i class="bi bi-person-{% if action == 'Add' %}plus{% else %}gear{% endif %}"></i>
+                    {{ _('customer_form.edit_title') if customer else _('customer_form.add_title') }}
+                </span>
+                <span class="badge db-postgres">PostgreSQL</span>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">{{ _('customer_form.name') }} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="first_name" name="first_name"
+                                   value="{{ customer.first_name if customer else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="last_name" name="last_name"
+                                   value="{{ customer.last_name if customer else '' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">{{ _('customer_form.email') }} <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ customer.email if customer else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">{{ _('customer_form.phone') }}</label>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                   value="{{ customer.phone if customer else '' }}">
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label for="address" class="form-label">{{ _('customer_form.address') }}</label>
+                        <input type="text" class="form-control" id="address" name="address"
+                               value="{{ customer.address if customer else '' }}">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="city" class="form-label">{{ _('customer_form.city') }}</label>
+                            <input type="text" class="form-control" id="city" name="city"
+                                   value="{{ customer.city if customer else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="country" class="form-label">Country</label>
+                            <input type="text" class="form-control" id="country" name="country"
+                                   value="{{ customer.country if customer else '' }}">
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('customers') }}" class="btn btn-secondary">
+                            <i class="bi bi-x-lg"></i> {{ _('common.cancel') }}
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ _('customer_form.update') if customer else _('customer_form.create') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

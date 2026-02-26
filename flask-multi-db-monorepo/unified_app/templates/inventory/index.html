@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory &amp; Reorders{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-clipboard-data me-2"></i>Inventory &amp; Reorders</h2>
+        <p class="text-muted mb-0">Monitor stock levels and trigger automatic reorders</p>
+    </div>
+    <form method="POST" action="{{ url_for('inventory_check') }}">
+        <button type="submit" class="btn btn-warning btn-lg">
+            <i class="bi bi-arrow-repeat me-1"></i> Run Inventory Check
+        </button>
+    </form>
+</div>
+
+<!-- Stock Summary Cards -->
+{% if summary %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Total Products</h6>
+                <h2 class="card-title mb-0">{{ summary.total_products }}</h2>
+                <span class="badge bg-primary mt-2">Azure SQL</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center h-100 {% if summary.low_stock_count > 0 %}border-warning{% endif %}">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Low Stock (&lt;{{ summary.threshold }})</h6>
+                <h2 class="card-title mb-0 {% if summary.low_stock_count > 0 %}text-warning{% endif %}">
+                    {{ summary.low_stock_count }}
+                </h2>
+                <span class="badge bg-warning text-dark mt-2">Needs attention</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center h-100 {% if summary.out_of_stock_count > 0 %}border-danger{% endif %}">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Out of Stock (=0)</h6>
+                <h2 class="card-title mb-0 {% if summary.out_of_stock_count > 0 %}text-danger{% endif %}">
+                    {{ summary.out_of_stock_count }}
+                </h2>
+                <span class="badge bg-danger mt-2">Critical</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-2">Pending Reorders</h6>
+                <h2 class="card-title mb-0 text-info">{{ pending_count }}</h2>
+                <span class="badge bg-info mt-2">DocumentDB</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- How it works -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-gear me-2"></i>How the Inventory Agent Works</h5>
+        <div class="row text-center mt-3">
+            <div class="col-md-4">
+                <div class="p-3">
+                    <i class="bi bi-database text-primary" style="font-size: 2rem;"></i>
+                    <h6 class="mt-2">1. Query Azure SQL</h6>
+                    <p class="text-muted small mb-0">Scan all products and find those with <code>stock &lt; 10</code></p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3">
+                    <i class="bi bi-calculator text-warning" style="font-size: 2rem;"></i>
+                    <h6 class="mt-2">2. Calculate Reorders</h6>
+                    <p class="text-muted small mb-0">Generate a reorder of <strong>50 units</strong> for each low-stock product</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3">
+                    <i class="bi bi-cloud-arrow-up text-success" style="font-size: 2rem;"></i>
+                    <h6 class="mt-2">3. Save to DocumentDB</h6>
+                    <p class="text-muted small mb-0">Insert reorder documents into the <code>reorders</code> collection</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reorders Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-arrow-repeat me-2"></i>Reorder History</h5>
+        <span class="badge bg-secondary">{{ reorders|length }} record(s)</span>
+    </div>
+    <div class="card-body p-0">
+        {% if reorders %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Reorder ID</th>
+                        <th>SKU</th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th class="text-end">Stock at time</th>
+                        <th class="text-end">Qty ordered</th>
+                        <th class="text-end">Est. Cost</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in reorders %}
+                    <tr>
+                        <td><code>{{ r.reorder_id }}</code></td>
+                        <td><code>{{ r.sku }}</code></td>
+                        <td>{{ r.product_name }}</td>
+                        <td>{{ r.category or '-' }}</td>
+                        <td class="text-end">
+                            <span class="badge {% if r.current_stock == 0 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                {{ r.current_stock }}
+                            </span>
+                        </td>
+                        <td class="text-end"><strong>+{{ r.reorder_quantity }}</strong></td>
+                        <td class="text-end">{{ "%.2f"|format(r.estimated_cost) }} {{ r.currency }}</td>
+                        <td>
+                            {% if r.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif r.status == 'approved' %}
+                                <span class="badge bg-info">Approved</span>
+                            {% elif r.status == 'ordered' %}
+                                <span class="badge bg-primary">Ordered</span>
+                            {% elif r.status == 'received' %}
+                                <span class="badge bg-success">Received</span>
+                            {% elif r.status == 'cancelled' %}
+                                <span class="badge bg-secondary">Cancelled</span>
+                            {% else %}
+                                <span class="badge bg-dark">{{ r.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ r.created_at[:16] if r.created_at else '-' }}</td>
+                        <td>
+                            {% if r.status == 'pending' %}
+                            <div class="d-flex gap-1">
+                                <form method="POST" action="{{ url_for('fulfill_reorder', reorder_id=r.reorder_id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Mark reorder {{ r.reorder_id }} as received and add +{{ r.reorder_quantity }} units to stock?')">
+                                        <i class="bi bi-check-circle me-1"></i>Received
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('cancel_reorder', reorder_id=r.reorder_id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Cancel and delete reorder {{ r.reorder_id }}?')">
+                                        <i class="bi bi-x-circle me-1"></i>Cancel
+                                    </button>
+                                </form>
+                            </div>
+                            {% elif r.status == 'received' %}
+                                <span class="text-success small"><i class="bi bi-check-lg"></i> Done</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+            <p class="mt-2">No reorders yet. Click <strong>Run Inventory Check</strong> to scan stock levels.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

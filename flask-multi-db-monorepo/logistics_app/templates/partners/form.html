@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} Partner{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('partners') }}">Partners</a></li>
+            {% if partner %}
+            <li class="breadcrumb-item"><a href="{{ url_for('partner_detail', partner_id=partner.partner_id) }}">{{ partner.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active">{{ action }}</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h3><i class="bi bi-building"></i> {{ action }} Partner</h3>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">Partner Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ partner.name if partner else '' }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="contact_email" class="form-label">Contact Email *</label>
+                        <input type="email" class="form-control" id="contact_email" name="contact_email" 
+                               value="{{ partner.contact_email if partner else '' }}" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="contact_phone" class="form-label">Contact Phone</label>
+                        <input type="tel" class="form-control" id="contact_phone" name="contact_phone" 
+                               value="{{ partner.contact_phone if partner else '' }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Status</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="active" name="active"
+                                   {% if not partner or partner.active %}checked{% endif %}>
+                            <label class="form-check-label" for="active">Active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="service_areas" class="form-label">Service Areas</label>
+                    <input type="text" class="form-control" id="service_areas" name="service_areas"
+                           value="{{ partner.service_areas | join(', ') if partner and partner.service_areas else '' }}"
+                           placeholder="Paris, Lyon, Marseille">
+                    <div class="form-text">Comma-separated list of cities or regions</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="vehicle_types" class="form-label">Vehicle Types</label>
+                    <input type="text" class="form-control" id="vehicle_types" name="vehicle_types"
+                           value="{{ partner.vehicle_types | join(', ') if partner and partner.vehicle_types else '' }}"
+                           placeholder="Van, Truck, Bike">
+                    <div class="form-text">Comma-separated list of vehicle types</div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('partners') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> {{ action }} Partner
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

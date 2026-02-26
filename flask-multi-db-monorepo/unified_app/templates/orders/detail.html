@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('order_detail.heading') }} {{ order.order_id[:8] }} - Multi-Database Demo{% endblock %}
+{% block page_title %}{{ _('order_detail.heading') }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('orders') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> {{ _('order_detail.back') }}
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cart3"></i> {{ _('order_detail.order_number') }} #{{ order.order_id[:8] }}...</span>
+                <span class="badge db-postgres">PostgreSQL</span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label class="text-muted small">{{ _('order_detail.status') }}</label>
+                        <p><span class="badge status-{{ order.status|lower }} fs-6">{{ order.status | translate }}</span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small">{{ _('order_detail.total_amount') }}</label>
+                        <p class="h4 text-success">${{ "%.2f"|format(order.total_amount|float) }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="text-muted small">{{ _('order_detail.created') }}</label>
+                        <p>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at is not string and order.created_at else (order.created_at if order.created_at else 'N/A') }}</p>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="text-muted small">{{ _('order_detail.full_id') }}</label>
+                    <p><code>{{ order.order_id }}</code></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Items -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-box-seam"></i> {{ _('order_detail.items') }}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ _('order_detail.product') }}</th>
+                                <th>{{ _('order_detail.category') }}</th>
+                                <th>{{ _('order_detail.quantity') }}</th>
+                                <th>{{ _('order_detail.unit_price') }}</th>
+                                <th>{{ _('order_detail.subtotal') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order_items %}
+                            <tr>
+                                <td>{{ item.product_name | translate }}</td>
+                                <td><span class="badge bg-secondary">{{ (item.category or 'N/A') | translate }}</span></td>
+                                <td>{{ item.quantity }}</td>
+                                <td>${{ "%.2f"|format(item.unit_price|float) }}</td>
+                                <td>${{ "%.2f"|format((item.quantity * item.unit_price)|float) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">{{ _('order_detail.no_items') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="4" class="text-end">{{ _('order_detail.total') }}:</th>
+                                <th>${{ "%.2f"|format(order.total_amount|float) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Customer Info -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-person"></i> {{ _('order_detail.customer') }}
+            </div>
+            <div class="card-body">
+                {% if customer %}
+                <h6>{{ customer.name }}</h6>
+                <p class="text-muted small mb-2">{{ customer.email }}</p>
+                <a href="{{ url_for('customer_detail', customer_id=customer.customer_id) }}" class="btn btn-sm btn-outline-primary">
+                    {{ _('order_detail.view_customer') }}
+                </a>
+                {% else %}
+                <p class="text-muted">Customer ID: {{ order.customer_id[:8] }}...</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Delivery Info -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-truck"></i> {{ _('order_detail.delivery') }}</span>
+                <span class="badge db-mongo">DocumentDB</span>
+            </div>
+            <div class="card-body">
+                {% if delivery %}
+                <div class="mb-2">
+                    <label class="text-muted small">{{ _('order_detail.status') }}</label>
+                    <p class="mb-1"><span class="badge status-{{ delivery.status|lower }}">{{ delivery.status | translate }}</span></p>
+                </div>
+                {% if delivery.partner_name %}
+                <div class="mb-2">
+                    <label class="text-muted small">{{ _('order_detail.partner') }}</label>
+                    <p class="mb-1">{{ delivery.partner_name }}</p>
+                </div>
+                {% endif %}
+                {% if delivery.tracking_number %}
+                <div class="mb-2">
+                    <label class="text-muted small">{{ _('order_detail.tracking') }}</label>
+                    <p class="mb-1"><code>{{ delivery.tracking_number }}</code></p>
+                </div>
+                {% endif %}
+                <a href="{{ url_for('delivery_detail', delivery_id=delivery._id) }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-truck"></i> {{ _('order_detail.view_delivery') }}
+                </a>
+                {% else %}
+                <p class="text-muted">{{ _('order_detail.no_delivery') }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-gear"></i> {{ _('order_detail.actions') }}
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_order_status', order_id=order.order_id) }}" method="POST" class="mb-3">
+                    <label class="form-label small">{{ _('order_detail.update_status') }}</label>
+                    <div class="input-group">
+                        <select name="status" class="form-select">
+                            {% for status in ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'] %}
+                            <option value="{{ status }}" {{ 'selected' if order.status == status else '' }}>{{ status|title }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary">{{ _('common.update') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

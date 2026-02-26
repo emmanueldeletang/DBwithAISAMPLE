@@ -1,0 +1,1 @@
+# This file initializes the services package for the Azure SQL application.

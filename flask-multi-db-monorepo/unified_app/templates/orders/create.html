@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('order_create.heading') }} - Multi-Database Demo{% endblock %}
+{% block page_title %}{{ _('order_create.heading') }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('orders') }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> {{ _('order_create.back') }}
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-cart-plus"></i> {{ _('order_create.heading') }}
+            </div>
+            <form method="POST" action="{{ url_for('create_order') }}" id="orderForm">
+                <div class="card-body">
+                    <!-- Customer Selection -->
+                    <div class="mb-4">
+                        <label class="form-label">{{ _('order_create.customer') }} <span class="text-danger">*</span></label>
+                        <select name="customer_id" class="form-select" required id="customerSelect">
+                            <option value="">{{ _('order_create.select_customer') }}</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.customer_id }}" 
+                                    data-name="{{ customer.name }}"
+                                    data-email="{{ customer.email }}"
+                                    data-city="{{ customer.city }}">
+                                {{ customer.name }} ({{ customer.email }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Order Items -->
+                    <div class="mb-4">
+                        <label class="form-label">{{ _('order_create.items') }} <span class="text-danger">*</span></label>
+                        <div id="orderItems">
+                            <div class="order-item-row mb-2">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <select name="product_sku" class="form-select product-select" required>
+                                            <option value="">{{ _('order_create.select_product') }}</option>
+                                            {% for product in products %}
+                                            <option value="{{ product.sku }}" 
+                                                    data-price="{{ product.price }}"
+                                                    data-name="{{ product.name }}"
+                                                    data-category="{{ product.category }}">
+                                                {{ product.name }} - ${{ "%.2f"|format(product.price|float) }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <input type="number" name="quantity" class="form-control quantity-input" 
+                                               min="1" value="1" placeholder="{{ _('order_create.quantity') }}" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="item-subtotal form-control-plaintext text-end">$0.00</span>
+                                    </div>
+                                    <div class="col-md-1">
+                                        <button type="button" class="btn btn-outline-danger btn-remove-item" disabled>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addItemBtn">
+                            <i class="bi bi-plus-circle"></i> {{ _('order_create.add_item') }}
+                        </button>
+                    </div>
+                    
+                    <!-- Shipping Address -->
+                    <div class="mb-4">
+                        <label class="form-label">Shipping Address <span class="text-danger">*</span></label>
+                        <textarea name="shipping_address" class="form-control" rows="3" required 
+                                  placeholder="Enter full shipping address..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>Order Total: <span id="orderTotal" class="text-success">$0.00</span></strong>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> {{ _('order_create.create_order') }}
+                        </button>
+                        <a href="{{ url_for('orders') }}" class="btn btn-outline-secondary">{{ _('common.cancel') }}</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> {{ _('order_create.tips') }}
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <span class="badge db-postgres me-2">1</span>
+                    <span class="small">{{ _('order_create.tips_text') }}</span>
+                </div>
+                <div class="d-flex align-items-center mb-3">
+                    <span class="badge db-mongo me-2">2</span>
+                    <span class="small">{{ _('order_create.tips_text') }}</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-warning text-dark me-2">3</span>
+                    <span class="small">{{ _('order_create.tips_text') }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" id="customerPreview" style="display: none;">
+            <div class="card-header">
+                <i class="bi bi-person"></i> Selected Customer
+            </div>
+            <div class="card-body">
+                <h6 id="previewName"></h6>
+                <p class="small text-muted mb-1" id="previewEmail"></p>
+                <p class="small text-muted mb-0" id="previewCity"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const orderItems = document.getElementById('orderItems');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const orderTotal = document.getElementById('orderTotal');
+    const customerSelect = document.getElementById('customerSelect');
+    const customerPreview = document.getElementById('customerPreview');
+    
+    // Customer preview
+    customerSelect.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        if (this.value) {
+            document.getElementById('previewName').textContent = selected.dataset.name;
+            document.getElementById('previewEmail').textContent = selected.dataset.email;
+            document.getElementById('previewCity').textContent = selected.dataset.city;
+            customerPreview.style.display = 'block';
+        } else {
+            customerPreview.style.display = 'none';
+        }
+    });
+    
+    // Calculate totals
+    function calculateTotals() {
+        let total = 0;
+        document.querySelectorAll('.order-item-row').forEach(row => {
+            const select = row.querySelector('.product-select');
+            const qty = row.querySelector('.quantity-input');
+            const subtotalEl = row.querySelector('.item-subtotal');
+            
+            if (select.value && qty.value) {
+                const price = parseFloat(select.options[select.selectedIndex].dataset.price) || 0;
+                const quantity = parseInt(qty.value) || 0;
+                const subtotal = price * quantity;
+                subtotalEl.textContent = '$' + subtotal.toFixed(2);
+                total += subtotal;
+            } else {
+                subtotalEl.textContent = '$0.00';
+            }
+        });
+        orderTotal.textContent = '$' + total.toFixed(2);
+    }
+    
+    // Add item row
+    function createItemRow() {
+        const template = orderItems.querySelector('.order-item-row').cloneNode(true);
+        template.querySelector('.product-select').value = '';
+        template.querySelector('.quantity-input').value = 1;
+        template.querySelector('.item-subtotal').textContent = '$0.00';
+        template.querySelector('.btn-remove-item').disabled = false;
+        return template;
+    }
+    
+    addItemBtn.addEventListener('click', function() {
+        orderItems.appendChild(createItemRow());
+        updateRemoveButtons();
+        attachEventListeners();
+    });
+    
+    // Remove item
+    orderItems.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-remove-item')) {
+            const row = e.target.closest('.order-item-row');
+            if (document.querySelectorAll('.order-item-row').length > 1) {
+                row.remove();
+                calculateTotals();
+                updateRemoveButtons();
+            }
+        }
+    });
+    
+    function updateRemoveButtons() {
+        const rows = document.querySelectorAll('.order-item-row');
+        rows.forEach((row, index) => {
+            row.querySelector('.btn-remove-item').disabled = rows.length === 1;
+        });
+    }
+    
+    function attachEventListeners() {
+        document.querySelectorAll('.product-select, .quantity-input').forEach(el => {
+            el.removeEventListener('change', calculateTotals);
+            el.addEventListener('change', calculateTotals);
+        });
+    }
+    
+    attachEventListeners();
+});
+</script>
+{% endblock %}

@@ -11,9 +11,11 @@ requests
 openai
 Jinja2
 Werkzeug
+bcrypt
 mcp
 mssql-python
 azure-identity
 azure-storage-blob
+azure-cosmos
 setuptools
 

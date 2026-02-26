@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery {{ delivery.tracking_number }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('deliveries') }}">Deliveries</a></li>
+            <li class="breadcrumb-item active">{{ delivery.tracking_number }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <!-- Main Info -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-box-seam"></i> Delivery Details</h5>
+                    <span class="badge status-{{ delivery.status }} status-badge fs-6">{{ delivery.status | replace('_', ' ') }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Tracking Number:</strong><br><code class="fs-5">{{ delivery.tracking_number }}</code></p>
+                            <p><strong>Order ID:</strong><br>{{ delivery.order_id }}</p>
+                            <p><strong>Customer:</strong><br>{{ delivery.customer_name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Delivery Address:</strong></p>
+                            <address>
+                                {{ delivery.address.street }}<br>
+                                {{ delivery.address.postal_code }} {{ delivery.address.city }}<br>
+                                {{ delivery.address.country }}
+                            </address>
+                        </div>
+                    </div>
+                    
+                    {% if delivery.notes %}
+                    <hr>
+                    <p><strong>Notes:</strong><br>{{ delivery.notes }}</p>
+                    {% endif %}
+                    
+                    <hr>
+                    <p class="mb-0"><strong>Status:</strong> {{ delivery.status_text }}</p>
+                </div>
+            </div>
+
+            <!-- Tracking Timeline -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Tracking History</h5>
+                </div>
+                <div class="card-body">
+                    {% if delivery.events %}
+                    <div class="tracking-timeline">
+                        {% for event in delivery.events | reverse %}
+                        <div class="tracking-event">
+                            <strong>{{ event.status | replace('_', ' ') | title }}</strong>
+                            <br>
+                            <span class="text-muted small">{{ event.timestamp[:16] | replace('T', ' ') if event.timestamp else '' }}</span>
+                            <p class="mb-0">{{ event.description }}</p>
+                            {% if event.location %}
+                            <small class="text-muted"><i class="bi bi-geo-alt"></i> {{ event.location }}</small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No tracking events yet</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Update Status -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-arrow-repeat"></i> Update Status</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('update_delivery_status', delivery_id=delivery.delivery_id) }}">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">New Status</label>
+                                <select name="status" class="form-select" required>
+                                    <option value="pending" {% if delivery.status == 'pending' %}selected{% endif %}>Pending</option>
+                                    <option value="picked_up" {% if delivery.status == 'picked_up' %}selected{% endif %}>Picked Up</option>
+                                    <option value="in_transit" {% if delivery.status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                                    <option value="out_for_delivery" {% if delivery.status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
+                                    <option value="delivered" {% if delivery.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                    <option value="failed" {% if delivery.status == 'failed' %}selected{% endif %}>Failed</option>
+                                    <option value="returned" {% if delivery.status == 'returned' %}selected{% endif %}>Returned</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Status Text (optional)</label>
+                                <input type="text" name="status_text" class="form-control" placeholder="Additional info...">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Location (optional)</label>
+                                <input type="text" name="location" class="form-control" placeholder="e.g., Paris Hub">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> Update Status
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Partner Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-building"></i> Delivery Partner</h5>
+                </div>
+                <div class="card-body">
+                    {% if partner %}
+                    <h5>{{ partner.name }}</h5>
+                    <p class="mb-1"><i class="bi bi-envelope"></i> {{ partner.contact_email }}</p>
+                    {% if partner.contact_phone %}
+                    <p class="mb-2"><i class="bi bi-telephone"></i> {{ partner.contact_phone }}</p>
+                    {% endif %}
+                    <a href="{{ url_for('partner_detail', partner_id=partner.partner_id) }}" class="btn btn-outline-primary btn-sm">
+                        View Partner
+                    </a>
+                    {% else %}
+                    <p class="text-muted mb-3">No partner assigned</p>
+                    <form method="post" action="{{ url_for('assign_partner', delivery_id=delivery.delivery_id) }}">
+                        <select name="partner_id" class="form-select mb-2" required>
+                            <option value="">Select Partner...</option>
+                            <!-- Partners would be loaded here -->
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Assign Partner</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Track -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-share"></i> Share Tracking</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">Customer tracking link:</p>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-sm" 
+                               value="{{ url_for('track', tracking=delivery.tracking_number, _external=True) }}" 
+                               readonly id="trackingUrl">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copyTrackingUrl()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copyTrackingUrl() {
+    const input = document.getElementById('trackingUrl');
+    input.select();
+    document.execCommand('copy');
+    alert('Tracking URL copied!');
+}
+</script>
+{% endblock %}
